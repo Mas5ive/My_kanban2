@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "my-kanban2"
+version = "0.1.0"
+description = ""
+authors = ["Mas5ive <empty>"]
+readme = "README.md"
+packages = [{include = "my_kanban2"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+django = "4.2"
+django-debug-toolbar = "4.2.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
