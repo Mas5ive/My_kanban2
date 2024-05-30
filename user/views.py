@@ -1,10 +1,11 @@
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView
 from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
 
-from .forms import RegisterUserForm
+from .forms import LoginUserForm, RegisterUserForm
 
 
 @login_required
@@ -26,3 +27,7 @@ class RegisterUserView(CreateView):
         login(self.request, user)
         return response
 
+
+class LoginUserView(LoginView):
+    form_class = LoginUserForm
+    template_name = 'auth/login.html'

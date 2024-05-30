@@ -1,0 +1,21 @@
+{% extends 'auth/base.html' %}
+
+{% block title %}
+<title>Log in</title>
+{% endblock %}
+
+{% block content %}
+<h1>Welcome back!</h1>
+<form action="" method="post">
+    {% csrf_token %}
+    {% for field in form %}
+    <p>
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+    </p>
+    {% endfor %}
+    <div>{{ form.non_field_errors }}</div>
+    {{ form.errors }}
+    <button class="form-button">Log in</button>
+</form>
+{% endblock %}
