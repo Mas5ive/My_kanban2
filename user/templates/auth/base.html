@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    {% include 'includes/common_head.html' %}
+    {% block title %}{% endblock %}
+    <style>
+        
+        main {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .form-button {
+            display: block;
+            padding: 5px 10px;
+            margin: auto;
+            margin-top: 40px;
+            border-radius: 5px;
+            color: white;
+            background-color: transparent;
+            border: 1px solid white;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>KANBAN</h1>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer></footer>
+</body>
+</html>
