@@ -21,5 +21,6 @@ urlpatterns = [
     # path('admin/', admin.site.urls),
     path('', include('thisapp.urls')),
     path('users/', include('user.urls')),
+    path('users/', include('social_django.urls', namespace='social')),
     path("__debug__/", include("debug_toolbar.urls")),
 ]

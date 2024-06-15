@@ -1,3 +1,23 @@
-<h1>Your profile</h1>
-<hr>
-<p><a href="{% url 'password_change' %}">Change password</a></p>
+<!DOCTYPE html>
+<html lang="en">
+    
+    <head>
+        {% include 'includes/common_head.html' %}
+        {% block title %}{% endblock %}
+        <style></style>
+    </head>
+    
+    <body>
+        <header>
+            <h1>You`re {{ user.username }}</h1>
+        </header>
+
+        <main>
+            {% if user.group.name == 'normal' %}
+            <p><a href="{% url 'password_change' %}">Change password</a></p>
+            {% endif %}
+        </main>
+
+        <footer></footer>
+    </body>
+</html>

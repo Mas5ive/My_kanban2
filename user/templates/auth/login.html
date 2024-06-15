@@ -27,4 +27,7 @@
     <p><a href="{% url 'password_reset' %}">Forgot your password?</a></p>
     <button class="form-button">Log in</button>
 </form>
+
+<p><a href="{% url 'logout_then_OAuth2' 'github'%}">Github</a></p>
+
 {% endblock %}

@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'thisapp.apps.ThisappConfig',
     'user.apps.UserConfig',
     "debug_toolbar",
+    'social_django',
 ]
 
 MIDDLEWARE = [
@@ -109,9 +110,26 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 AUTHENTICATION_BACKENDS = [
+    'social_core.backends.github.GithubOAuth2',
     'django.contrib.auth.backends.ModelBackend',
     'user.auth_email.EmailAuthBackend',
 ]
+
+
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'user.OAuth2.social_user',
+    'user.OAuth2.get_username',
+    'user.OAuth2.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+)
+
+SOCIAL_AUTH_GITHUB_KEY = 'Ov23liGlPj5IXAnE9HCp'
+SOCIAL_AUTH_GITHUB_SECRET = '7880cea4c73a579d66a43970f18db6f72164a7de'
 
 
 AUTH_USER_MODEL = 'user.CustomUser'

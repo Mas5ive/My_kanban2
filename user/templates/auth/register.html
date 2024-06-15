@@ -18,4 +18,7 @@
     {{ form.errors }}
     <button class="form-button">Sign up</button>
 </form>
+
+<p><a href="{% url 'logout_then_OAuth2' 'github'%}">Github</a></p>
+
 {% endblock %}

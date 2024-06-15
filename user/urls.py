@@ -6,12 +6,13 @@ from django.contrib.auth.views import (LogoutView, PasswordChangeDoneView,
                                        PasswordResetView)
 from django.urls import path, reverse_lazy
 
-from . import views
+from . import OAuth2, views
 
 urlpatterns = [
     path('signup/', views.RegisterUserView.as_view(), name='signup'),
     path('login/', views.LoginUserView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
+    path('logout/redirect-OAuth2/<str:provider>/', OAuth2.logout_then_OAuth2, name='logout_then_OAuth2'),
     path('profile/', views.profile_view, name='profile'),
     path(
         'password-change/',
