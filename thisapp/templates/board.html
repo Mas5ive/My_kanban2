@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    {% include 'includes/common_head.html' %}
+    <title>Board "{{ board.title }}"</title>
+</head>
+
+<body>
+    <main>
+        {% if is_owner %}
+        <form method="post" action="">
+            {% csrf_token %}
+            <button class="transparent-button">Delete the board</button>
+        </form>
+        {% endif %}
+    </main>
+    <footer></footer>
+
+</body>
+
+</html>

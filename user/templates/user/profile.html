@@ -4,7 +4,28 @@
     <head>
         {% include 'includes/common_head.html' %}
         {% block title %}{% endblock %}
-        <style></style>
+        <style>
+            main {
+                flex-direction: column;
+                padding-left: 20px;
+                padding-bottom: 20px;
+            }
+    
+            .board-button {
+                padding: 10px 10px;
+                border-radius: 5px;
+                color: white;
+                font-size: 18px;
+                background-color: #251a0d;
+                border: none;
+            }
+    
+            .line-block {
+                display: flex;
+                flex-direction: row;
+                gap: 10px;
+            }
+        </style>
     </head>
     
     <body>
@@ -16,6 +37,61 @@
             {% if user.group.name == 'normal' %}
             <p><a href="{% url 'password_change' %}">Change password</a></p>
             {% endif %}
+
+            {% if owner_boards %}
+            <section>
+                <h2>Your boards</h2>
+                <div class="line-block">
+                    {% for board in owner_boards %}
+                    <form action="{% url 'board' board_id=board.id %}" method="get">
+                        <button class="board-button">{{ board.title }}</button>
+                    </form>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            <section>
+                <h3>Create a new board</h3>
+                <form method="post" action="{% url 'create_board' %}">
+                    {% csrf_token %}
+                    <div class="line-block">
+                    {% for field in form %}
+                    <p>
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                    </p>
+                    {% endfor %}
+                    </div>
+                    
+                    <div class="error-messages">
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    <button class="transparent-button">Create</button>
+                </form>
+            </section>
+
+
+            {% if invitation_boards %}
+            <section>
+                <h2>You're a member of</h2>
+                <div class="line-block">
+                    {% for board in invitation_boards %}
+                    <form action="{% url 'board' board_id=board.id %}" method="get">
+                        <button class="board-button">{{ board.title }}</button>
+                    </form>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
         </main>
 
         <footer></footer>
