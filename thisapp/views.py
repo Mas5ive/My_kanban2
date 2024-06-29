@@ -1,3 +1,4 @@
+from collections import defaultdict
 from functools import wraps
 
 from django.contrib import messages
@@ -18,6 +19,37 @@ from .models import Board, Invitation, Membership
 
 def index_view(request):
     return render(request, 'index.html')
+
+
+@login_required
+def profile_view(request):
+    form_data = request.session.pop('form_data', None)
+    form_errors = request.session.pop('form_errors', None)
+
+    if form_data:
+        form = CreateBoardForm(form_data)
+        form.errors.update(form_errors)
+    else:
+        form = CreateBoardForm()
+
+    user_boards = Membership.objects.filter(user=request.user).select_related('board')
+
+    boards = defaultdict(list)
+    for user in user_boards:
+        if user.is_owner:
+            boards['owner boards'].append(user.board)
+        else:
+            boards['invitation boards'].append(user.board)
+
+    invitations = Invitation.objects.filter(user_recipient=request.user).select_related('board', 'user_sender')
+
+    context = {
+        'form': form,
+        'owner_boards': boards['owner boards'],
+        'invitation_boards': boards['invitation boards'],
+        'invitations': invitations,
+    }
+    return render(request, 'profile.html', context=context)
 
 
 @login_required
@@ -131,5 +163,32 @@ def delete_member_view(request, board_id):
         ).delete()
 
         return redirect('board', board_id=board_id)
+    else:
+        return HttpResponseNotFound()
+
+
+@login_required
+def pick_invitation_view(request, board_id):
+    if request.method == 'POST':
+        recipient = request.user
+        invitation = Invitation.objects.filter(board_id=board_id, user_recipient=recipient).first()
+
+        if not invitation:
+            return HttpResponse('The request contains incorrect data', status=400)
+
+        operation = request.POST['operation']
+        if operation == 'accept':
+            with transaction.atomic():
+                invitation.delete()
+                Membership.objects.create(
+                    user=recipient,
+                    board_id=board_id
+                )
+        elif operation == 'reject':
+            invitation.delete()
+        else:
+            return HttpResponse('The request contains incorrect data', status=400)
+
+        return redirect('profile')
     else:
         return HttpResponseNotFound()

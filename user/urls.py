@@ -12,8 +12,7 @@ urlpatterns = [
     path('signup/', views.RegisterUserView.as_view(), name='signup'),
     path('login/', views.LoginUserView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
-    path('logout/redirect-OAuth2/<str:provider>/', OAuth2.logout_then_OAuth2, name='logout_then_OAuth2'),
-    path('profile/', views.profile_view, name='profile'),
+    path('logout/redirect-to-OAuth2/select-<str:provider>/', OAuth2.logout_then_OAuth2, name='logout_then_OAuth2'),
     path(
         'password-change/',
         PasswordChangeView.as_view(template_name='user/password_change.html'),
@@ -51,5 +50,4 @@ urlpatterns = [
         PasswordResetCompleteView.as_view(template_name='user/password_reset_complete.html'),
         name='password_reset_complete'
     ),
-    path('profile/invitations/boards/<int:board_id>/', views.pick_invitation_view, name='pick_invitation'),
 ]
