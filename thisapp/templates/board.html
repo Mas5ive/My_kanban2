@@ -4,16 +4,158 @@
 <head>
     {% include 'includes/common_head.html' %}
     <title>Board "{{ board.title }}"</title>
+    <style>
+        h2 {
+            text-align: center;
+            position: sticky;
+            margin: 0;
+            padding: 5px;
+            background-color: #864f1b;
+        }
+
+        .board {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            width: 75%;
+            padding: 2%;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            width: 30%;
+            max-height: 450px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+        }
+
+        .form-container {
+            display: flex;
+            justify-content: center;
+            width: 30%;
+        }
+
+
+        .delete-member-botton {
+            width: 100%;
+            height: 100%;
+            color: rgb(105, 18, 18);
+            background-color: rgb(216, 156, 128);
+        }
+
+        .card {
+            display: flex;
+            padding: 10px;
+            border: 2px solid white;
+        }
+
+        .flex-20 {
+            flex: 0 0 20%;
+        }
+
+        .flex-grow-rest {
+            flex-grow: 1;
+            max-width: 80%;
+        }
+
+        .open-card-button {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            color: rgb(59, 37, 18);
+            background-color: rgb(216, 175, 128);
+        }
+
+        .move-card-button {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            color: black;
+            background-color: orange;
+        }
+
+        .members {
+            display: flex;
+            flex-direction: column;
+            width: 25%;
+            height: 80vh;
+            padding: 10px;
+            border: 3px solid #ccc;
+        }
+
+        .member {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.61);
+        }
+
+        .member>p {
+            width: 80%;
+            padding-left: 5px;
+        }
+
+        .invite {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: auto;
+            padding: 5px;
+        }
+    </style>
 </head>
 
 <body>
     <main>
-        {% if is_owner %}
+        {% if user_is_owner %}
         <form method="post" action="">
             {% csrf_token %}
             <button class="transparent-button">Delete the board</button>
         </form>
         {% endif %}
+
+        <section class="members">
+            <h2>Members</h2>
+
+            <div class="scrollable">
+                {% for member in board.membership_set.all %}
+                    {% if member.user.username != user.username %}
+                    <div class="member">
+                        <p>{{ member.user.username }}</p>
+                        {% if user_is_owner %}
+                        <form action="{% url 'delete_member' board_id=board.id %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="member" value="{{ member.user.username }}">
+                            <button class="delete-member-botton">Delete</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            {% if user_is_owner%}
+                <div class="invite">
+                    <form method="post" action="{% url 'сreate_invitation' board_id=board.id %}">
+                        {% csrf_token %}
+                        <label for="username">User:</label>
+                        <input type="text" id="recipient" name="recipient" required>
+                        <button class="transparent-button">Invite</button>
+                    </form>
+                </div>
+
+                {% if messages %}
+                    <p class="flash">
+                        {% for message in messages %}
+                            {{ message.tags }}: {{ message }}
+                        {% endfor %}
+                    </p>
+                {% endif %}
+            {% endif %}
+            
+        </section>
     </main>
     <footer></footer>
 

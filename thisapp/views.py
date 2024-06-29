@@ -1,11 +1,19 @@
+from functools import wraps
+
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import HttpResponseForbidden, HttpResponseNotFound, HttpResponseRedirect
-from django.shortcuts import get_object_or_404, redirect, render
+from django.db.utils import IntegrityError
+from django.http import (HttpResponse, HttpResponseForbidden,
+                         HttpResponseNotFound, HttpResponseRedirect)
+from django.shortcuts import (get_list_or_404, get_object_or_404, redirect,
+                              render)
 from django.urls import reverse
 
+from user.models import CustomUser
+
 from .forms import CreateBoardForm
-from .models import Board, Membership
+from .models import Board, Invitation, Membership
 
 
 def index_view(request):
@@ -14,15 +22,15 @@ def index_view(request):
 
 @login_required
 def handle_board_view(request, board_id):
-    board = get_object_or_404(Board, id=board_id)
+    board = get_object_or_404(Board.objects.prefetch_related('membership_set__user'), id=board_id)
 
-    try:
-        membership = Membership.objects.select_related('board').get(user=request.user, board=board)
-    except Membership.DoesNotExist:
+    user_with_board = Membership.objects.filter(user=request.user, board=board).first()
+
+    if not user_with_board:
         return HttpResponseForbidden()
 
     if request.method == 'POST':
-        if not membership.is_owner:
+        if not user_with_board.is_owner:
             return HttpResponseForbidden()
         else:
             board.delete()
@@ -30,7 +38,7 @@ def handle_board_view(request, board_id):
 
     context = {
         'board': board,
-        'is_owner': membership.is_owner
+        'user_is_owner': user_with_board.is_owner,
     }
     return render(request, 'board.html', context=context)
 
@@ -52,5 +60,76 @@ def create_board_view(request):
             request.session['form_data'] = request.POST
             request.session['form_errors'] = form.errors
             return HttpResponseRedirect(reverse('profile'), status=303)
+    else:
+        return HttpResponseNotFound()
+
+
+def handle_messages_and_redirect(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, board_id, *args, **kwargs):
+        response = view_func(request, board_id, *args, **kwargs)
+        if isinstance(response, tuple) and len(response) == 2:
+            message, message_type = response
+            if message_type == 'success':
+                messages.success(request, message)
+            elif message_type == 'error':
+                messages.error(request, message)
+            return redirect('board', board_id=board_id)
+        return response
+    return _wrapped_view
+
+
+@login_required
+@handle_messages_and_redirect
+def сreate_invitation_view(request, board_id):
+    if request.method == 'POST':
+        membership = get_list_or_404(Membership, board=board_id)
+        sender = request.user
+
+        if not any(m.is_owner and m.user == sender for m in membership):
+            return HttpResponseForbidden()
+
+        recipient_username = request.POST.get('recipient', '')
+        recipient = CustomUser.objects.filter(username=recipient_username).first()
+
+        if not recipient:
+            return "The user doesn't exist", 'error'
+
+        if any(m.user == recipient for m in membership):
+            return "The user is already a member of the board", 'error'
+
+        try:
+            Invitation.objects.create(
+                user_recipient=recipient,
+                board_id=board_id,
+                user_sender=sender
+            )
+        except IntegrityError:
+            return 'The user has already received an invitation', 'error'
+
+        return 'The invitation has been sent!', 'success'
+    else:
+        return HttpResponseNotFound()
+
+
+@login_required
+def delete_member_view(request, board_id):
+    if request.method == 'POST':
+        membership = get_list_or_404(Membership, board=board_id)
+
+        if not any(m.is_owner for m in membership if m.user == request.user):
+            return HttpResponseForbidden()
+
+        member = CustomUser.objects.filter(username=request.POST.get('member', '')).first()
+
+        if not member or all(m.user != member for m in membership if not m.is_owner):
+            return HttpResponse('The request contains incorrect data', status=400)
+
+        Membership.objects.filter(
+            user=member,
+            board_id=board_id
+        ).delete()
+
+        return redirect('board', board_id=board_id)
     else:
         return HttpResponseNotFound()

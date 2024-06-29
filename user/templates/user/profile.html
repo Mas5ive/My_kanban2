@@ -78,6 +78,26 @@
                 </form>
             </section>
 
+            {% if invitations %}
+            <section>
+                <h2>Invitations</h2>
+                {% for invitation in invitations %}
+                <div class="line-block">
+                    {{ invitation.user_sender.username }} invites you to "{{ invitation.board.title }}"
+                    <form action="{% url 'pick_invitation' board_id=invitation.board_id %}" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="operation" value="reject">
+                        <button class="transparent-button" type="submit">Reject</button>
+                    </form>
+                    <form action="{% url 'pick_invitation' board_id=invitation.board_id %}" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="operation" value="accept">
+                        <button class="transparent-button" type="submit">Accept</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </section>
+            {% endif %}
 
             {% if invitation_boards %}
             <section>

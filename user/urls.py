@@ -50,5 +50,6 @@ urlpatterns = [
         'password-reset/complete/',
         PasswordResetCompleteView.as_view(template_name='user/password_reset_complete.html'),
         name='password_reset_complete'
-    )
+    ),
+    path('profile/invitations/boards/<int:board_id>/', views.pick_invitation_view, name='pick_invitation'),
 ]
