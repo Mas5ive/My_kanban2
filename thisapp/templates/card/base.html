@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    {% include 'includes/common_head.html' %}
+    {% block title %}{% endblock %}
+    <style>
+        textarea {
+            display: block;
+        }
+
+        .board-button {
+            display: flex;
+            border: none;
+            font-size: 18px;
+            padding: 10px 10px;
+            margin: 20px;
+            color: white;
+            background-color: #251a0d;
+        }
+
+        .card-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .card-title {
+            text-align: center;
+            resize: vertical;
+            font-size: 30px;
+            width: 700px;
+            height: 40px;
+            margin-top: 20px;
+            margin-bottom: 50px;
+        }
+
+        .card-content {
+            resize: vertical;
+            width: 700px;
+            height: 350px;
+            font-size: 20px;
+        }
+    </style>
+    {% block style %}{% endblock %}
+</head>
+
+<body>
+    <header>
+        <form action="{% url 'logout' %}" method="get">
+            <button class="transparent-button">Log out</button>
+        </form>
+
+        {% block header_title %}{% endblock %}
+
+        
+        <form action="{% url 'profile' %}" method="get">
+            <button class="transparent-button">Profile</button>
+        </form>
+    </header>
+
+    {% block content %}{% endblock %}
+
+    <footer></footer>
+</body>
+
+</html>

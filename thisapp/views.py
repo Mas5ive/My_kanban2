@@ -13,8 +13,8 @@ from django.urls import reverse
 
 from user.models import CustomUser
 
-from .forms import CreateBoardForm
-from .models import Board, Invitation, Membership
+from .forms import CardForm, CreateBoardForm
+from .models import Board, Card, Invitation, Membership
 
 
 def index_view(request):
@@ -54,7 +54,10 @@ def profile_view(request):
 
 @login_required
 def handle_board_view(request, board_id):
-    board = get_object_or_404(Board.objects.prefetch_related('membership_set__user'), id=board_id)
+    board = get_object_or_404(
+        Board.objects.prefetch_related('membership_set__user', 'cards'),
+        id=board_id,
+    )
 
     user_with_board = Membership.objects.filter(user=request.user, board=board).first()
 
@@ -68,9 +71,16 @@ def handle_board_view(request, board_id):
             board.delete()
             return redirect('profile')
 
+    grouped_cards = defaultdict(list)
+    for card in board.cards.all():
+        grouped_cards[card.status].append(card)
+
     context = {
         'board': board,
         'user_is_owner': user_with_board.is_owner,
+        'backlog_cards': grouped_cards.get(Card.Status.BACKLOG, []),
+        'in_progress_cards': grouped_cards.get(Card.Status.IN_PROGRESS, []),
+        'done_cards': grouped_cards.get(Card.Status.DONE, []),
     }
     return render(request, 'board.html', context=context)
 
@@ -192,3 +202,117 @@ def pick_invitation_view(request, board_id):
         return redirect('profile')
     else:
         return HttpResponseNotFound()
+
+
+@login_required
+def create_card_view(request, board_id):
+    membership = get_object_or_404(Membership, board=board_id, user=request.user)
+
+    if not membership.is_owner:
+        return HttpResponseForbidden()
+
+    if request.method == 'POST':
+        form = CardForm(request.POST)
+        if form.is_valid():
+            card = form.save(commit=False)
+            card.board_id = board_id
+            card.save()
+            return redirect('board', board_id=board_id)
+        else:
+            status = 400
+    else:
+        form = CardForm()
+        status = 200
+
+    context = {
+        'board_id': board_id,
+        'form': form,
+    }
+    return render(request, 'card/create.html', context=context, status=status)
+
+
+def move_card(card: Card, operation: str):
+    match card.status, operation:
+        case Card.Status.BACKLOG, 'MOVE_RIGHT':
+            card.status = Card.Status.IN_PROGRESS
+        case Card.Status.IN_PROGRESS, 'MOVE_LEFT':
+            card.status = Card.Status.BACKLOG
+        case Card.Status.IN_PROGRESS, 'MOVE_RIGHT':
+            card.status = Card.Status.DONE
+        case Card.Status.DONE, 'MOVE_LEFT':
+            card.status = Card.Status.IN_PROGRESS
+        case _:
+            return False
+    card.save()
+    return True
+
+
+def edit_card(request, card: Card):
+    form = CardForm(request.POST)
+
+    if form.is_valid():
+        changed_card = form.save(commit=False)
+        card.title = changed_card.title
+        card.content = changed_card.content
+        card.save()
+        messages.success(request, 'Saved')
+        status = 200
+    else:
+        errors_str = '\n'.join([f"{field}: {error}"
+                                for field, error_list in form.errors.items() for error in error_list])
+        messages.error(request, errors_str)
+        status = 400
+
+    context = {
+        'card': card,
+        'form': form
+    }
+    return context, status
+
+
+def handle_post_request_card(request, card: Card, board_id: int, user_with_board: Membership):
+    operation = request.POST.get('operation', '')
+
+    if operation == 'DELETE':
+        if not user_with_board.is_owner:
+            return HttpResponseForbidden()
+
+        card.delete()
+        return redirect('board', board_id=board_id)
+
+    elif operation == 'EDIT':
+        if not user_with_board.is_owner:
+            return HttpResponseForbidden()
+
+        context, status = edit_card(request, card)
+        context['board_id'] = board_id
+        context['user_with_board'] = user_with_board
+        return render(request, 'card/view.html', context=context, status=status)
+
+    elif 'MOVE' in operation:
+        result = move_card(card, operation)
+        if result:
+            return redirect('board', board_id=board_id)
+
+    return HttpResponse('The request contains incorrect data', status=400)
+
+
+@login_required
+def handle_card_view(request, board_id, card_id):
+    card = get_object_or_404(Card, id=card_id)
+    user_with_board = Membership.objects.filter(board_id=board_id, user=request.user).first()
+
+    if not user_with_board:
+        return HttpResponseForbidden()
+
+    if request.method == 'POST':
+        return handle_post_request_card(request, card, board_id, user_with_board)
+
+    form = CardForm(instance=card)
+    context = {
+        'board_id': board_id,
+        'user_with_board': user_with_board,
+        'card': card,
+        'form': form
+    }
+    return render(request, 'card/view.html', context=context)

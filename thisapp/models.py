@@ -35,3 +35,17 @@ class Invitation(models.Model):
     def __str__(self) -> str:
         return f'for {self.user_recipient} to {self.board}'
 
+
+class Card(models.Model):
+    class Status(models.IntegerChoices):
+        BACKLOG = 1, 'Backlog'
+        IN_PROGRESS = 2, 'In progress'
+        DONE = 3, 'Done'
+
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='cards')
+    title = models.TextField()
+    content = models.TextField(blank=True, null=True)
+    status = models.IntegerField(choices=Status.choices, default=Status.BACKLOG)
+
+    def __str__(self) -> str:
+        return self.title

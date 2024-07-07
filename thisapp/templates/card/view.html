@@ -1,0 +1,104 @@
+{% extends 'card/base.html' %}
+
+{% block title %}
+<title>{{ card.title }}</title>
+{% endblock %}
+
+{% block style %}
+<style>
+    h2 {
+        text-align: center;
+        position: sticky;
+        margin: 0;
+        padding: 5px;
+        background-color: #864f1b;
+    }
+
+    .comments {
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        width: 25%;
+        height: 80vh;
+        padding: 10px;
+        border: 3px solid #ccc;
+    }
+
+    .comment {
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+    }
+
+    .comment>p:nth-child(1) {
+        text-align: center;
+    }
+
+    .comment>p:nth-child(2) {
+        margin-right: 10px;
+    }
+
+    .delete-comment-botton {
+        float: right;
+        margin-top: 5px;
+        margin-bottom: 5px;
+        margin-right: 10px;
+    }
+
+    .comment-input {
+        width: 95%;
+        height: 100px;
+        resize: vertical;
+        margin-bottom: 10px;
+    }
+
+    .submit-button {
+        float: right;
+        width: 80px;
+        margin-right: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block header_title %}
+<h1>{{ card.board.title }}</h1>
+{% endblock %}
+
+{% block content %}
+<main>
+    <form action="{% url 'board' board_id=board_id %}" method="get">
+        <button class="board-button">Back to the board</button>
+    </form>
+
+    <section class="card-info">
+        {% if user_with_board.is_owner %}
+        <form action="{% url 'card' board_id=board_id card_id=card.id %}" method="post">
+            {% csrf_token %}
+            {{ form.title }}
+            {{ form.content }}
+            <input type="hidden" name="operation" value="EDIT">
+            <button class="board-button">Edit</button>
+            {% if messages %}
+                <p class="flash">
+                    {% for message in messages %}
+                        {{ message }}
+                    {% endfor %}
+                </p>
+            {% endif %}
+        </form>
+        {% else %}
+        <h3>{{ card.title | linebreaksbr }}</h3>
+        <p>{{ card.content | linebreaksbr }}</p>
+        {% endif %}
+
+    </section>
+
+    {% if user_with_board.is_owner %}
+    <form action="{% url 'card' board_id=board_id card_id=card.id %}" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="operation" value="DELETE">
+        <button class="board-button">Delete</button>
+    </form>
+    {% endif %}
+</main>
+{% endblock %}
