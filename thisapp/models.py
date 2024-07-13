@@ -1,5 +1,8 @@
+import os
+
 from django.db import models
 
+from thisapp.validators import validate_file_size
 from user.models import CustomUser
 
 
@@ -49,3 +52,29 @@ class Card(models.Model):
 
     def __str__(self) -> str:
         return self.title
+
+
+class Comment(models.Model):
+    card = models.ForeignKey(Card, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='own_comments')
+    content = models.TextField()
+    date = models.DateTimeField(auto_now=True)
+    file = models.FileField(
+        upload_to='user_uploads',
+        validators=[validate_file_size],
+        default=None,
+        null=True,
+        blank=True,
+    )
+
+    def __str__(self) -> str:
+        return str(self.card)
+
+    def get_filename(self) -> str | None:
+        if self.file:
+            return os.path.basename(self.file.path)
+
+    def delete(self, *args, **kwargs):
+        if self.file:
+            os.remove(self.file.path)
+        super().delete(*args, **kwargs)

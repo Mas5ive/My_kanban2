@@ -1,3 +1,4 @@
+import mimetypes
 from collections import defaultdict
 from functools import wraps
 
@@ -6,15 +7,16 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.http import (HttpResponse, HttpResponseForbidden,
-                         HttpResponseNotFound, HttpResponseRedirect)
+                         HttpResponseNotAllowed, HttpResponseNotFound,
+                         HttpResponseRedirect)
 from django.shortcuts import (get_list_or_404, get_object_or_404, redirect,
                               render)
 from django.urls import reverse
 
 from user.models import CustomUser
 
-from .forms import CardForm, CreateBoardForm
-from .models import Board, Card, Invitation, Membership
+from .forms import CardForm, CommentForm, CreateBoardForm
+from .models import Board, Card, Comment, Invitation, Membership
 
 
 def index_view(request):
@@ -265,12 +267,12 @@ def edit_card(request, card: Card):
 
     context = {
         'card': card,
-        'form': form
+        'card_form': CardForm(instance=card),
     }
     return context, status
 
 
-def handle_post_request_card(request, card: Card, board_id: int, user_with_board: Membership):
+def handle_post_request_card(request, card: Card, board: Board, user_with_board: Membership):
     operation = request.POST.get('operation', '')
 
     if operation == 'DELETE':
@@ -278,41 +280,121 @@ def handle_post_request_card(request, card: Card, board_id: int, user_with_board
             return HttpResponseForbidden()
 
         card.delete()
-        return redirect('board', board_id=board_id)
+        return redirect('board', board_id=board.id)
 
     elif operation == 'EDIT':
         if not user_with_board.is_owner:
             return HttpResponseForbidden()
 
         context, status = edit_card(request, card)
-        context['board_id'] = board_id
+        context['board'] = board
         context['user_with_board'] = user_with_board
+        context['comment_form'] = CommentForm()
         return render(request, 'card/view.html', context=context, status=status)
 
     elif 'MOVE' in operation:
         result = move_card(card, operation)
         if result:
-            return redirect('board', board_id=board_id)
+            return redirect('board', board_id=board.id)
 
     return HttpResponse('The request contains incorrect data', status=400)
 
 
 @login_required
 def handle_card_view(request, board_id, card_id):
-    card = get_object_or_404(Card, id=card_id)
-    user_with_board = Membership.objects.filter(board_id=board_id, user=request.user).first()
+    board = get_object_or_404(Board, id=board_id)
+    card = get_object_or_404(Card.objects.prefetch_related('comments__author'), id=card_id, board=board)
+    user_with_board = Membership.objects.filter(board_id=board_id, user=request.user).select_related('user').first()
 
     if not user_with_board:
         return HttpResponseForbidden()
 
     if request.method == 'POST':
-        return handle_post_request_card(request, card, board_id, user_with_board)
+        return handle_post_request_card(request, card, board, user_with_board)
 
-    form = CardForm(instance=card)
+    comment_form = CommentForm()
+
     context = {
-        'board_id': board_id,
+        'board': board,
         'user_with_board': user_with_board,
         'card': card,
-        'form': form
+        'comment_form': comment_form,
     }
+
+    if user_with_board.is_owner:
+        context['card_form'] = CardForm(instance=card)
+
     return render(request, 'card/view.html', context=context)
+
+
+@login_required
+def create_comment_view(request, board_id, card_id):
+    if request.method == 'POST':
+        board = get_object_or_404(Board, id=board_id)
+
+        if not Membership.objects.filter(user=request.user, board_id=board_id).exists():
+            return HttpResponseForbidden()
+
+        card = get_object_or_404(Card, id=card_id, board=board)
+
+        form = CommentForm(request.POST, request.FILES)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.card_id = card.id
+            comment.author = request.user
+            comment.save()
+            return redirect('card', board_id=board_id, card_id=card_id)
+        else:
+            return HttpResponse(
+                '<br>'.join(error for list_error in form.errors.values() for error in list_error),
+                status=400
+            )
+    else:
+        return HttpResponseNotAllowed()
+
+
+@login_required
+def get_file_from_comment(request, board_id, card_id, comment_id):
+    if request.method == 'GET':
+        board = get_object_or_404(Board, id=board_id)
+
+        if not Membership.objects.filter(user=request.user, board_id=board_id).exists():
+            return HttpResponseForbidden()
+
+        card = get_object_or_404(Card, id=card_id, board=board)
+        comment = get_object_or_404(Comment, id=comment_id, card=card)
+
+        file_name = comment.get_filename()
+        if not file_name:
+            return HttpResponseNotFound()
+
+        with open(comment.file.path, 'rb') as file:
+            mime_type, _ = mimetypes.guess_type(file_name)
+            if mime_type is None:
+                mime_type = 'application/octet-stream'
+
+            response = HttpResponse(file.read(), content_type=mime_type)
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+    else:
+        return HttpResponseNotAllowed()
+
+
+@login_required
+def delete_comment_view(request, board_id, card_id, comment_id):
+    if request.method == 'POST':
+        board = get_object_or_404(Board, id=board_id)
+        card = get_object_or_404(Card, id=card_id, board=board)
+        comment = get_object_or_404(Comment, id=comment_id, card=card)
+
+        if comment.author != request.user:
+            return HttpResponseForbidden()
+
+        operation = request.POST.get('operation', '')
+        if operation == 'DELETE':
+            comment.delete()
+            return redirect('card', board_id=board_id, card_id=card_id)
+        else:
+            return HttpResponse('The request contains incorrect data', status=400)
+    else:
+        return HttpResponseNotAllowed()
