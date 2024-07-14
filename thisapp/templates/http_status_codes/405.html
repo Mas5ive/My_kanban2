@@ -1,0 +1,15 @@
+{% extends 'http_status_codes/base.html' %}
+
+{% block title %}
+<title>405 Method not allowed</title>
+{% endblock %}
+
+{% block header_title %}
+<h1>405</h1>
+{% endblock %}
+
+{% block content %}
+{% load static %}
+<img src="{% static 'images/405.png' %}" alt="prohibition sign">
+<h3>The method you used is not allowed for this URL.</h3>
+{% endblock %}

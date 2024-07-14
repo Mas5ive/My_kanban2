@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        {% include 'includes/common_head.html' %}
+        {% block title %}{% endblock %}
+        <style>
+            main {
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+
+            img {
+                width: 300px;
+                height: 300px;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            {% block header_title %}{% endblock %}
+        </header>    
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+        
+        <footer></footer>
+    </body>
+</html>

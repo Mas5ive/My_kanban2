@@ -7,23 +7,25 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.http import (HttpResponse, HttpResponseForbidden,
-                         HttpResponseNotAllowed, HttpResponseNotFound,
-                         HttpResponseRedirect)
+                         HttpResponseNotFound, HttpResponseRedirect)
 from django.shortcuts import (get_list_or_404, get_object_or_404, redirect,
                               render)
 from django.urls import reverse
 
+from thisapp.decorators import custom_require_http_methods
 from user.models import CustomUser
 
 from .forms import CardForm, CommentForm, CreateBoardForm
 from .models import Board, Card, Comment, Invitation, Membership
 
 
+@custom_require_http_methods(['GET'])
 def index_view(request):
     return render(request, 'index.html')
 
 
 @login_required
+@custom_require_http_methods(['GET'])
 def profile_view(request):
     form_data = request.session.pop('form_data', None)
     form_errors = request.session.pop('form_errors', None)
@@ -55,6 +57,7 @@ def profile_view(request):
 
 
 @login_required
+@custom_require_http_methods(['GET', 'POST'])
 def handle_board_view(request, board_id):
     board = get_object_or_404(
         Board.objects.prefetch_related('membership_set__user', 'cards'),
@@ -88,24 +91,23 @@ def handle_board_view(request, board_id):
 
 
 @login_required
+@custom_require_http_methods(['POST'])
 def create_board_view(request):
-    if request.method == 'POST':
-        form = CreateBoardForm(request.POST)
-        if form.is_valid():
-            with transaction.atomic():
-                board = form.save()
-                Membership.objects.create(
-                    user=request.user,
-                    board=board,
-                    is_owner=True
-                )
-            return redirect('profile')
-        else:
-            request.session['form_data'] = request.POST
-            request.session['form_errors'] = form.errors
-            return HttpResponseRedirect(reverse('profile'), status=303)
-    else:
-        return HttpResponseNotFound()
+    form = CreateBoardForm(request.POST)
+
+    if not form.is_valid():
+        request.session['form_data'] = request.POST
+        request.session['form_errors'] = form.errors
+        return HttpResponseRedirect(reverse('profile'), status=303)
+
+    with transaction.atomic():
+        board = form.save()
+        Membership.objects.create(
+            user=request.user,
+            board=board,
+            is_owner=True
+        )
+    return redirect('profile')
 
 
 def handle_messages_and_redirect(view_func):
@@ -124,89 +126,84 @@ def handle_messages_and_redirect(view_func):
 
 
 @login_required
+@custom_require_http_methods(['POST'])
 @handle_messages_and_redirect
 def сreate_invitation_view(request, board_id):
-    if request.method == 'POST':
-        membership = get_list_or_404(Membership, board=board_id)
-        sender = request.user
+    membership = get_list_or_404(Membership, board=board_id)
+    sender = request.user
 
-        if not any(m.is_owner and m.user == sender for m in membership):
-            return HttpResponseForbidden()
+    if not any(m.is_owner and m.user == sender for m in membership):
+        return HttpResponseForbidden()
 
-        recipient_username = request.POST.get('recipient', '')
-        recipient = CustomUser.objects.filter(username=recipient_username).first()
+    recipient_username = request.POST.get('recipient', '')
+    recipient = CustomUser.objects.filter(username=recipient_username).first()
 
-        if not recipient:
-            return "The user doesn't exist", 'error'
+    if not recipient:
+        return "The user doesn't exist", 'error'
 
-        if any(m.user == recipient for m in membership):
-            return "The user is already a member of the board", 'error'
+    if any(m.user == recipient for m in membership):
+        return "The user is already a member of the board", 'error'
 
-        try:
-            Invitation.objects.create(
-                user_recipient=recipient,
-                board_id=board_id,
-                user_sender=sender
-            )
-        except IntegrityError:
-            return 'The user has already received an invitation', 'error'
+    try:
+        Invitation.objects.create(
+            user_recipient=recipient,
+            board_id=board_id,
+            user_sender=sender
+        )
+    except IntegrityError:
+        return 'The user has already received an invitation', 'error'
 
-        return 'The invitation has been sent!', 'success'
-    else:
-        return HttpResponseNotFound()
+    return 'The invitation has been sent!', 'success'
 
 
 @login_required
+@custom_require_http_methods(['POST'])
 def delete_member_view(request, board_id):
-    if request.method == 'POST':
-        membership = get_list_or_404(Membership, board=board_id)
+    membership = get_list_or_404(Membership, board=board_id)
 
-        if not any(m.is_owner for m in membership if m.user == request.user):
-            return HttpResponseForbidden()
+    if not any(m.is_owner for m in membership if m.user == request.user):
+        return HttpResponseForbidden()
 
-        member = CustomUser.objects.filter(username=request.POST.get('member', '')).first()
+    member = CustomUser.objects.filter(username=request.POST.get('member', '')).first()
 
-        if not member or all(m.user != member for m in membership if not m.is_owner):
-            return HttpResponse('The request contains incorrect data', status=400)
+    if not member or all(m.user != member for m in membership if not m.is_owner):
+        return HttpResponse('The request contains incorrect data', status=400)
 
-        Membership.objects.filter(
-            user=member,
-            board_id=board_id
-        ).delete()
+    Membership.objects.filter(
+        user=member,
+        board_id=board_id
+    ).delete()
 
-        return redirect('board', board_id=board_id)
-    else:
-        return HttpResponseNotFound()
+    return redirect('board', board_id=board_id)
 
 
 @login_required
+@custom_require_http_methods(['POST'])
 def pick_invitation_view(request, board_id):
-    if request.method == 'POST':
-        recipient = request.user
-        invitation = Invitation.objects.filter(board_id=board_id, user_recipient=recipient).first()
+    recipient = request.user
+    invitation = Invitation.objects.filter(board_id=board_id, user_recipient=recipient).first()
 
-        if not invitation:
-            return HttpResponse('The request contains incorrect data', status=400)
+    if not invitation:
+        return HttpResponse('The request contains incorrect data', status=400)
 
-        operation = request.POST['operation']
-        if operation == 'accept':
-            with transaction.atomic():
-                invitation.delete()
-                Membership.objects.create(
-                    user=recipient,
-                    board_id=board_id
-                )
-        elif operation == 'reject':
+    operation = request.POST['operation']
+    if operation == 'accept':
+        with transaction.atomic():
             invitation.delete()
-        else:
-            return HttpResponse('The request contains incorrect data', status=400)
-
-        return redirect('profile')
+            Membership.objects.create(
+                user=recipient,
+                board_id=board_id
+            )
+    elif operation == 'reject':
+        invitation.delete()
     else:
-        return HttpResponseNotFound()
+        return HttpResponse('The request contains incorrect data', status=400)
+
+    return redirect('profile')
 
 
 @login_required
+@custom_require_http_methods(['GET', 'POST'])
 def create_card_view(request, board_id):
     membership = get_object_or_404(Membership, board=board_id, user=request.user)
 
@@ -301,6 +298,7 @@ def handle_post_request_card(request, card: Card, board: Board, user_with_board:
 
 
 @login_required
+@custom_require_http_methods(['GET', 'POST'])
 def handle_card_view(request, board_id, card_id):
     board = get_object_or_404(Board, id=board_id)
     card = get_object_or_404(Card.objects.prefetch_related('comments__author'), id=card_id, board=board)
@@ -328,73 +326,67 @@ def handle_card_view(request, board_id, card_id):
 
 
 @login_required
+@custom_require_http_methods(['POST'])
 def create_comment_view(request, board_id, card_id):
-    if request.method == 'POST':
-        board = get_object_or_404(Board, id=board_id)
+    board = get_object_or_404(Board, id=board_id)
 
-        if not Membership.objects.filter(user=request.user, board_id=board_id).exists():
-            return HttpResponseForbidden()
+    if not Membership.objects.filter(user=request.user, board_id=board_id).exists():
+        return HttpResponseForbidden()
 
-        card = get_object_or_404(Card, id=card_id, board=board)
+    card = get_object_or_404(Card, id=card_id, board=board)
+    form = CommentForm(request.POST, request.FILES)
 
-        form = CommentForm(request.POST, request.FILES)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.card_id = card.id
-            comment.author = request.user
-            comment.save()
-            return redirect('card', board_id=board_id, card_id=card_id)
-        else:
-            return HttpResponse(
-                '<br>'.join(error for list_error in form.errors.values() for error in list_error),
-                status=400
-            )
-    else:
-        return HttpResponseNotAllowed()
+    if not form.is_valid():
+        return HttpResponse(
+            '<br>'.join(error for list_error in form.errors.values() for error in list_error),
+            status=400
+        )
+
+    comment = form.save(commit=False)
+    comment.card_id = card.id
+    comment.author = request.user
+    comment.save()
+    return redirect('card', board_id=board_id, card_id=card_id)
 
 
 @login_required
+@custom_require_http_methods(['GET'])
 def get_file_from_comment(request, board_id, card_id, comment_id):
-    if request.method == 'GET':
-        board = get_object_or_404(Board, id=board_id)
+    board = get_object_or_404(Board, id=board_id)
 
-        if not Membership.objects.filter(user=request.user, board_id=board_id).exists():
-            return HttpResponseForbidden()
+    if not Membership.objects.filter(user=request.user, board_id=board_id).exists():
+        return HttpResponseForbidden()
 
-        card = get_object_or_404(Card, id=card_id, board=board)
-        comment = get_object_or_404(Comment, id=comment_id, card=card)
+    card = get_object_or_404(Card, id=card_id, board=board)
+    comment = get_object_or_404(Comment, id=comment_id, card=card)
 
-        file_name = comment.get_filename()
-        if not file_name:
-            return HttpResponseNotFound()
+    file_name = comment.get_filename()
+    if not file_name:
+        return HttpResponseNotFound()
 
-        with open(comment.file.path, 'rb') as file:
-            mime_type, _ = mimetypes.guess_type(file_name)
-            if mime_type is None:
-                mime_type = 'application/octet-stream'
+    mime_type, _ = mimetypes.guess_type(file_name)
+    if mime_type is None:
+        mime_type = 'application/octet-stream'
 
-            response = HttpResponse(file.read(), content_type=mime_type)
-            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
-            return response
-    else:
-        return HttpResponseNotAllowed()
+    with open(comment.file.path, 'rb') as file:
+        response = HttpResponse(file.read(), content_type=mime_type)
+        response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+    return response
 
 
 @login_required
+@custom_require_http_methods(['POST'])
 def delete_comment_view(request, board_id, card_id, comment_id):
-    if request.method == 'POST':
-        board = get_object_or_404(Board, id=board_id)
-        card = get_object_or_404(Card, id=card_id, board=board)
-        comment = get_object_or_404(Comment, id=comment_id, card=card)
+    board = get_object_or_404(Board, id=board_id)
+    card = get_object_or_404(Card, id=card_id, board=board)
+    comment = get_object_or_404(Comment, id=comment_id, card=card)
 
-        if comment.author != request.user:
-            return HttpResponseForbidden()
+    if comment.author != request.user:
+        return HttpResponseForbidden()
 
-        operation = request.POST.get('operation', '')
-        if operation == 'DELETE':
-            comment.delete()
-            return redirect('card', board_id=board_id, card_id=card_id)
-        else:
-            return HttpResponse('The request contains incorrect data', status=400)
-    else:
-        return HttpResponseNotAllowed()
+    operation = request.POST.get('operation', '')
+    if operation != 'DELETE':
+        return HttpResponse('The request contains incorrect data', status=400)
+
+    comment.delete()
+    return redirect('card', board_id=board_id, card_id=card_id)
