@@ -1,0 +1,15 @@
+{% extends 'http_status_codes/base.html' %}
+
+{% block title %}
+<title>403 Permission denied</title>
+{% endblock %}
+
+{% block header_title %}
+<h1>403</h1>
+{% endblock %}
+
+{% block content %}
+{% load static %}
+<img src="{% static 'images/403.png' %}" alt="prohibition sign">
+<h3>You do not have permission to make this request.</h3>
+{% endblock %}

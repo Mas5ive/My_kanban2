@@ -24,3 +24,5 @@ urlpatterns = [
     path('', include('social_django.urls', namespace='social')),
     path("__debug__/", include("debug_toolbar.urls")),
 ]
+
+handler403 = 'thisapp.views.permission_denied_view'
