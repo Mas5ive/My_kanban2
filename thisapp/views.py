@@ -181,10 +181,8 @@ def delete_member_view(request, board_id):
 @custom_require_http_methods(['POST'])
 def pick_invitation_view(request, board_id):
     recipient = request.user
-    invitation = Invitation.objects.filter(board_id=board_id, user_recipient=recipient).first()
-
-    if not invitation:
-        return HttpResponse('The request contains incorrect data', status=400)
+    board = get_object_or_404(Board, id=board_id)
+    invitation = get_object_or_404(Invitation, board=board, user_recipient=recipient)
 
     operation = request.POST['operation']
     if operation == 'accept':
@@ -205,9 +203,9 @@ def pick_invitation_view(request, board_id):
 @login_required
 @custom_require_http_methods(['GET', 'POST'])
 def create_card_view(request, board_id):
-    membership = get_object_or_404(Membership, board=board_id, user=request.user)
+    board = get_object_or_404(Board, id=board_id)
 
-    if not membership.is_owner:
+    if not Membership.objects.filter(board=board, user=request.user, is_owner=True).exists():
         return HttpResponseForbidden()
 
     if request.method == 'POST':
