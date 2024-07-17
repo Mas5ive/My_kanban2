@@ -26,3 +26,4 @@ urlpatterns = [
 ]
 
 handler403 = 'thisapp.views.permission_denied_view'
+handler404 = 'thisapp.views.page_not_found_view'

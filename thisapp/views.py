@@ -7,8 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.utils import IntegrityError
-from django.http import (HttpResponse, HttpResponseNotFound,
-                         HttpResponseRedirect)
+from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import (get_list_or_404, get_object_or_404, redirect,
                               render)
 from django.urls import reverse
@@ -361,7 +360,7 @@ def get_file_from_comment(request, board_id, card_id, comment_id):
 
     file_name = comment.get_filename()
     if not file_name:
-        return HttpResponseNotFound()
+        raise Http404
 
     mime_type, _ = mimetypes.guess_type(file_name)
     if mime_type is None:
@@ -393,3 +392,7 @@ def delete_comment_view(request, board_id, card_id, comment_id):
 
 def permission_denied_view(request, exception=None):
     return render(request, 'http_status_codes/403.html', status=403)
+
+
+def page_not_found_view(request, exception=None):
+    return render(request, 'http_status_codes/404.html', status=404)
