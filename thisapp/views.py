@@ -11,7 +11,7 @@ from django.shortcuts import (get_list_or_404, get_object_or_404, redirect,
                               render)
 from django.urls import reverse
 
-from thisapp.decorators import custom_require_http_methods
+from thisapp.http_handlers import custom_require_http_methods
 from user.models import CustomUser
 
 from .forms import CardForm, CommentForm, CreateBoardForm
@@ -374,11 +374,3 @@ def delete_comment_view(request, board_id, card_id, comment_id):
 
     comment.delete()
     return redirect('card', board_id=board_id, card_id=card_id)
-
-
-def permission_denied_view(request, exception=None):
-    return render(request, 'http_status_codes/403.html', status=403)
-
-
-def page_not_found_view(request, exception=None):
-    return render(request, 'http_status_codes/404.html', status=404)

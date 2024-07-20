@@ -16,6 +16,7 @@ Including another URLconf
 """
 # from django.contrib import admin
 from django.urls import include, path
+from thisapp import http_handlers
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
@@ -25,5 +26,5 @@ urlpatterns = [
     path("__debug__/", include("debug_toolbar.urls")),
 ]
 
-handler403 = 'thisapp.views.permission_denied_view'
-handler404 = 'thisapp.views.page_not_found_view'
+handler403 = http_handlers.permission_denied_view
+handler404 = http_handlers.page_not_found_view
