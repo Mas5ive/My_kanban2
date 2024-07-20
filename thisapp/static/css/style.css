@@ -52,10 +52,12 @@ button:hover {
     opacity: 0.8;
 }
 
-.flash {
-    text-align: center;
-    margin-top: 30px;
-    color: #f84343;
+.error-message {
+    color: #f56e5c;
+}
+
+.success-message {
+    color: #7cf76c;
 }
 
 .transparent-button {

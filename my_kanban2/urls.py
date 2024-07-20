@@ -26,5 +26,6 @@ urlpatterns = [
     path("__debug__/", include("debug_toolbar.urls")),
 ]
 
+handler400 = http_handlers.bad_request_view
 handler403 = http_handlers.permission_denied_view
 handler404 = http_handlers.page_not_found_view

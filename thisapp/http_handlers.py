@@ -4,6 +4,10 @@ from django.shortcuts import render
 from django.utils.log import log_response
 
 
+def bad_request_view(request, exception=None):
+    return render(request, 'http_status_codes/400.html', status=400)
+
+
 def permission_denied_view(request, exception=None):
     return render(request, 'http_status_codes/403.html', status=403)
 

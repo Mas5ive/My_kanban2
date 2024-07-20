@@ -225,11 +225,9 @@
                 </div>
 
                 {% if messages %}
-                    <p class="flash">
-                        {% for message in messages %}
-                            {{ message.tags }}: {{ message }}
-                        {% endfor %}
-                    </p>
+                    {% for message in messages %}
+                        <p class="{{ message.tags }}-message">{{ message }}<p>
+                    {% endfor %}
                 {% endif %}
             {% endif %}
             
