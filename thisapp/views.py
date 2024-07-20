@@ -1,10 +1,9 @@
 import mimetypes
 from collections import defaultdict
-from functools import wraps
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import BadRequest, PermissionDenied
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.http import Http404, HttpResponse, HttpResponseRedirect
@@ -27,15 +26,6 @@ def index_view(request):
 @login_required
 @custom_require_http_methods(['GET'])
 def profile_view(request):
-    form_data = request.session.pop('form_data', None)
-    form_errors = request.session.pop('form_errors', None)
-
-    if form_data:
-        form = CreateBoardForm(form_data)
-        form.errors.update(form_errors)
-    else:
-        form = CreateBoardForm()
-
     user_boards = Membership.objects.filter(user=request.user).select_related('board')
 
     boards = defaultdict(list)
@@ -48,7 +38,7 @@ def profile_view(request):
     invitations = Invitation.objects.filter(user_recipient=request.user).select_related('board', 'user_sender')
 
     context = {
-        'form': form,
+        'form': CreateBoardForm(),
         'owner_boards': boards['owner boards'],
         'invitation_boards': boards['invitation boards'],
         'invitations': invitations,
@@ -96,9 +86,10 @@ def create_board_view(request):
     form = CreateBoardForm(request.POST)
 
     if not form.is_valid():
-        request.session['form_data'] = request.POST
-        request.session['form_errors'] = form.errors
-        return HttpResponseRedirect(reverse('profile'), status=303)
+        for field, list_error in form.errors.items():
+            for error in list_error:
+                messages.error(request, field + ': ' + error)
+        raise BadRequest
 
     with transaction.atomic():
         board = form.save()
@@ -107,27 +98,11 @@ def create_board_view(request):
             board=board,
             is_owner=True
         )
-    return redirect('profile')
-
-
-def handle_messages_and_redirect(view_func):
-    @wraps(view_func)
-    def _wrapped_view(request, board_id, *args, **kwargs):
-        response = view_func(request, board_id, *args, **kwargs)
-        if isinstance(response, tuple) and len(response) == 2:
-            message, message_type = response
-            if message_type == 'success':
-                messages.success(request, message)
-            elif message_type == 'error':
-                messages.error(request, message)
-            return redirect('board', board_id=board_id)
-        return response
-    return _wrapped_view
+    return HttpResponseRedirect(reverse('profile'), status=303)
 
 
 @login_required
 @custom_require_http_methods(['POST'])
-@handle_messages_and_redirect
 def сreate_invitation_view(request, board_id):
     membership = get_list_or_404(Membership, board=board_id)
     sender = request.user
@@ -139,10 +114,12 @@ def сreate_invitation_view(request, board_id):
     recipient = CustomUser.objects.filter(username=recipient_username).first()
 
     if not recipient:
-        return "The user doesn't exist", 'error'
+        messages.error(request, f'User "{recipient_username}" does not exist')
+        raise BadRequest
 
     if any(m.user == recipient for m in membership):
-        return "The user is already a member of the board", 'error'
+        messages.error(request, f'User "{recipient_username}" is already a member of the board')
+        raise BadRequest
 
     try:
         Invitation.objects.create(
@@ -151,9 +128,13 @@ def сreate_invitation_view(request, board_id):
             user_sender=sender
         )
     except IntegrityError:
-        return 'The user has already received an invitation', 'error'
+        messages.error(request, f'User "{recipient_username}" has already received an invitation')
+        raise BadRequest
 
-    return 'The invitation has been sent!', 'success'
+    messages.success(request, 'The invitation has been sent!')
+    response = redirect('board', board_id=board_id)
+    response.status_code = 303
+    return response
 
 
 @login_required
@@ -164,17 +145,21 @@ def delete_member_view(request, board_id):
     if not any(m.is_owner for m in membership if m.user == request.user):
         raise PermissionDenied
 
-    member = CustomUser.objects.filter(username=request.POST.get('member', '')).first()
+    member_name = request.POST.get('member', '')
+    member = CustomUser.objects.filter(username=member_name).first()
 
     if not member or all(m.user != member for m in membership if not m.is_owner):
-        return HttpResponse('The request contains incorrect data', status=400)
+        messages.error(request, f'The use of the user "{member_name}" in the request is incorrect')
+        raise BadRequest
 
     Membership.objects.filter(
         user=member,
         board_id=board_id
     ).delete()
 
-    return redirect('board', board_id=board_id)
+    response = redirect('board', board_id=board_id)
+    response.status_code = 303
+    return response
 
 
 @login_required
@@ -184,7 +169,7 @@ def pick_invitation_view(request, board_id):
     board = get_object_or_404(Board, id=board_id)
     invitation = get_object_or_404(Invitation, board=board, user_recipient=recipient)
 
-    operation = request.POST['operation']
+    operation = request.POST.get('operation', '')
     if operation == 'accept':
         with transaction.atomic():
             invitation.delete()
@@ -195,9 +180,12 @@ def pick_invitation_view(request, board_id):
     elif operation == 'reject':
         invitation.delete()
     else:
-        return HttpResponse('The request contains incorrect data', status=400)
+        messages.error(request, f'The “{operation}” operation is incorrect in this request')
+        raise BadRequest
 
-    return redirect('profile')
+    response = redirect('profile')
+    response.status_code = 303
+    return response
 
 
 @login_required
@@ -214,21 +202,23 @@ def create_card_view(request, board_id):
             card = form.save(commit=False)
             card.board_id = board_id
             card.save()
-            return redirect('board', board_id=board_id)
+            response = redirect('board', board_id=board_id)
+            response.status_code = 303
+            return response
         else:
-            status = 400
-    else:
-        form = CardForm()
-        status = 200
+            for field, list_error in form.errors.items():
+                for error in list_error:
+                    messages.error(request, field + ': ' + error)
+            raise BadRequest
 
     context = {
         'board_id': board_id,
-        'form': form,
+        'form': CardForm(),
     }
-    return render(request, 'card/create.html', context=context, status=status)
+    return render(request, 'card/create.html', context=context)
 
 
-def move_card(card: Card, operation: str):
+def move_card(request, card: Card, operation: str):
     match card.status, operation:
         case Card.Status.BACKLOG, 'MOVE_RIGHT':
             card.status = Card.Status.IN_PROGRESS
@@ -239,6 +229,7 @@ def move_card(card: Card, operation: str):
         case Card.Status.DONE, 'MOVE_LEFT':
             card.status = Card.Status.IN_PROGRESS
         case _:
+            messages.error(request, f'The “{operation}” operation is incorrect in this request')
             return False
     card.save()
     return True
@@ -247,24 +238,17 @@ def move_card(card: Card, operation: str):
 def edit_card(request, card: Card):
     form = CardForm(request.POST)
 
-    if form.is_valid():
-        changed_card = form.save(commit=False)
-        card.title = changed_card.title
-        card.content = changed_card.content
-        card.save()
-        messages.success(request, 'Saved')
-        status = 200
-    else:
-        errors_str = '\n'.join([f"{field}: {error}"
-                                for field, error_list in form.errors.items() for error in error_list])
-        messages.error(request, errors_str)
-        status = 400
+    if not form.is_valid():
+        for field, list_error in form.errors.items():
+            for error in list_error:
+                messages.error(request, field + ': ' + error)
+        return False
 
-    context = {
-        'card': card,
-        'card_form': CardForm(instance=card),
-    }
-    return context, status
+    changed_card = form.save(commit=False)
+    card.title = changed_card.title
+    card.content = changed_card.content
+    card.save()
+    return True
 
 
 def handle_post_request_card(request, card: Card, board: Board, user_with_board: Membership):
@@ -273,26 +257,27 @@ def handle_post_request_card(request, card: Card, board: Board, user_with_board:
     if operation == 'DELETE':
         if not user_with_board.is_owner:
             raise PermissionDenied
-
         card.delete()
-        return redirect('board', board_id=board.id)
+        result = True
 
     elif operation == 'EDIT':
         if not user_with_board.is_owner:
             raise PermissionDenied
-
-        context, status = edit_card(request, card)
-        context['board'] = board
-        context['user_with_board'] = user_with_board
-        context['comment_form'] = CommentForm()
-        return render(request, 'card/view.html', context=context, status=status)
+        result = edit_card(request, card)
 
     elif 'MOVE' in operation:
-        result = move_card(card, operation)
-        if result:
-            return redirect('board', board_id=board.id)
+        result = move_card(request, card, operation)
 
-    return HttpResponse('The request contains incorrect data', status=400)
+    else:
+        messages.error(request, f'The “{operation}” operation is incorrect in this request')
+        result = False
+
+    if not result:
+        raise BadRequest
+
+    response = redirect('board', board_id=board.id)
+    response.status_code = 303
+    return response
 
 
 @login_required
@@ -335,10 +320,10 @@ def create_comment_view(request, board_id, card_id):
     form = CommentForm(request.POST, request.FILES)
 
     if not form.is_valid():
-        return HttpResponse(
-            '<br>'.join(error for list_error in form.errors.values() for error in list_error),
-            status=400
-        )
+        for field, list_error in form.errors.items():
+            for error in list_error:
+                messages.error(request, field + ': ' + error)
+            raise BadRequest
 
     comment = form.save(commit=False)
     comment.card_id = card.id
@@ -384,7 +369,8 @@ def delete_comment_view(request, board_id, card_id, comment_id):
 
     operation = request.POST.get('operation', '')
     if operation != 'DELETE':
-        return HttpResponse('The request contains incorrect data', status=400)
+        messages.error(request, f'The “{operation}” operation is incorrect in this request')
+        raise BadRequest
 
     comment.delete()
     return redirect('card', board_id=board_id, card_id=card_id)

@@ -78,13 +78,6 @@
             {{ card_form.content }}
             <input type="hidden" name="operation" value="EDIT">
             <button class="board-button">Edit</button>
-            {% if messages %}
-                <p class="flash">
-                    {% for message in messages %}
-                        {{ message }}
-                    {% endfor %}
-                </p>
-            {% endif %}
         </form>
         {% else %}
         <h3>{{ card.title | linebreaksbr }}</h3>
