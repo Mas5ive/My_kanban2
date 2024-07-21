@@ -108,6 +108,19 @@
 </head>
 
 <body>
+
+    <header>
+        <form action="{% url 'logout' %}" method="get">
+            <button class="transparent-button">Log out</button>
+        </form>
+
+        <h1>{{ board.title }}</h1>
+
+        <form action="{% url 'profile' %}" method="get">
+            <button class="transparent-button">Profile</button>
+        </form>
+    </header>
+
     <main>
         <section class="board">
 
