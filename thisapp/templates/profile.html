@@ -3,7 +3,7 @@
     
     <head>
         {% include 'includes/common_head.html' %}
-        {% block title %}{% endblock %}
+        <title>{{ user.username }}`s profile</title>
         <style>
             main {
                 flex-direction: column;
@@ -29,14 +29,28 @@
     </head>
     
     <body>
+
         <header>
-            <h1>You`re {{ user.username }}</h1>
+            <form action="{% url 'logout' %}" method="get">
+                <button class="transparent-button">Log out</button>
+            </form>
+            
+            {% if user.group.name == 'normal' %}
+                <h2>{{ user.username }} ({{ user.email }})</h2>
+            {% else %}
+                <h2>{{ user.username }}</h2>
+            {% endif %}
+
+            {% if user.group.name == 'normal' %}
+                <form action="{% url 'password_change' %}" method="get">
+                    <button class="transparent-button">Change password</button>
+                </form>
+            {% else %}
+                <span></span>
+            {% endif %}
         </header>
 
         <main>
-            {% if user.group.name == 'normal' %}
-            <p><a href="{% url 'password_change' %}">Change password</a></p>
-            {% endif %}
 
             {% if owner_boards %}
             <section>
