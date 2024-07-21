@@ -1,1 +1,46 @@
-<h1>Index page</h1>
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        {% include 'includes/common_head.html' %}
+        <title>KANBAN</title>
+        <style>
+            main {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin: 2%;
+            }
+
+            main>img {
+                width: 500px;
+                height: 437px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <header>
+            <form action="{% url 'signup' %}" method="get">
+                <button class="transparent-button">Sign Up</button>
+            </form>
+
+            <h1>KANBAN</h1>
+
+            <form action="{% url 'login' %}" method="get">
+                <button class="transparent-button">Log in</button>
+            </form>
+        </header>
+
+        <main>
+            {% load static %}
+            <img src="{% static 'images/ninja.png' %}" alt="ninja programmer">
+            <h2>A totally innovative service that allows you to organise your problem solving process.</h2>
+            <p>Invite people to projects, organise discussions and solve problems together!</p>
+        </main>
+
+        <footer></footer>
+
+    </body>
+
+</html>
