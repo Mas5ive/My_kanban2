@@ -1,5 +1,4 @@
 from django.contrib.auth.views import (LogoutView, PasswordChangeDoneView,
-                                       PasswordChangeView,
                                        PasswordResetCompleteView,
                                        PasswordResetConfirmView,
                                        PasswordResetDoneView,
@@ -13,11 +12,7 @@ urlpatterns = [
     path('login/', views.LoginUserView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('logout/redirect-to-OAuth2/select-<str:provider>/', OAuth2.logout_then_OAuth2, name='logout_then_OAuth2'),
-    path(
-        'password-change/',
-        PasswordChangeView.as_view(template_name='user/password_change.html'),
-        name='password_change'
-    ),
+    path('password-change/', views.CustomPasswordChangeView.as_view(), name='password_change'),
     path(
         'password-change/done/',
         PasswordChangeDoneView.as_view(template_name='user/password_change_done.html'),
