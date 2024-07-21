@@ -30,6 +30,7 @@ class RegisterUserForm(UserCreationForm):
 
 class LoginUserForm(AuthenticationForm):
     extend_label = 'Username or email'
+    password_label = 'Password'
 
     username = UsernameField(
         label=extend_label,
@@ -39,6 +40,16 @@ class LoginUserForm(AuthenticationForm):
         widget=forms.TextInput(attrs={
             "autofocus": True,
             'id': 'id_username_or_email',
+            'placeholder': extend_label,
+        }),
+    )
+
+    password = forms.CharField(
+        label=_(password_label),
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            "autocomplete": "current-password",
+            'placeholder': password_label
         }),
     )
 
