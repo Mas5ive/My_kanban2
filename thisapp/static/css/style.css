@@ -52,6 +52,18 @@ button:hover {
     opacity: 0.8;
 }
 
+a {
+    color: yellow;
+}
+
+a:visited {
+    color: yellow;
+}
+
+a:hover {
+    color: rgb(255, 166, 0);
+}
+
 .error-message {
     color: #f56e5c;
 }

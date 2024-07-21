@@ -6,10 +6,22 @@ from django.utils.translation import gettext_lazy as _
 
 
 class RegisterUserForm(UserCreationForm):
-    username = forms.CharField(label='Username')
-    email = forms.EmailField(label='Email', widget=forms.EmailInput())
-    password1 = forms.CharField(label='Password', widget=forms.PasswordInput())
-    password2 = forms.CharField(label='Repeat password', widget=forms.PasswordInput())
+    username = forms.CharField(
+        label='Username',
+        widget=forms.TextInput(attrs={'placeholder': 'Username'}),
+    )
+    email = forms.EmailField(
+        label='Email',
+        widget=forms.EmailInput(attrs={'placeholder': 'Email'}),
+    )
+    password1 = forms.CharField(
+        label='Password',
+        widget=forms.PasswordInput(attrs={'placeholder': 'Password'}),
+    )
+    password2 = forms.CharField(
+        label='Repeat password',
+        widget=forms.PasswordInput(attrs={'placeholder': 'Repeat password'}),
+    )
 
     class Meta:
         model = get_user_model()

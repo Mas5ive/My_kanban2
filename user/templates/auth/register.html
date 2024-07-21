@@ -9,16 +9,15 @@
 <form action="" method="post">
     {% csrf_token %}
     {% for field in form %}
-    <p>
-        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-    </p>
+        <div class="form-field">
+            {{ field }}
+            {% if field.errors %}
+                {% for error in field.errors %}
+                    <p class="error-message">{{ error }}</p>
+                {% endfor %}
+            {% endif %}
+        </div>
     {% endfor %}
-    <div>{{ form.non_field_errors }}</div>
-    {{ form.errors }}
     <button class="form-button">Sign up</button>
 </form>
-
-<p><a href="{% url 'logout_then_OAuth2' 'github'%}">Github</a></p>
-
 {% endblock %}
