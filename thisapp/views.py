@@ -14,6 +14,7 @@ from django.urls import reverse
 from thisapp.http_handlers import custom_require_http_methods
 from user.models import CustomUser
 
+from . import utils
 from .forms import CardForm, CommentForm, CreateBoardForm
 from .models import Board, Card, Comment, Invitation, Membership
 
@@ -218,61 +219,34 @@ def create_card_view(request, board_id):
     return render(request, 'card/create.html', context=context)
 
 
-def move_card(request, card: Card, operation: str):
-    match card.status, operation:
-        case Card.Status.BACKLOG, 'MOVE_RIGHT':
-            card.status = Card.Status.IN_PROGRESS
-        case Card.Status.IN_PROGRESS, 'MOVE_LEFT':
-            card.status = Card.Status.BACKLOG
-        case Card.Status.IN_PROGRESS, 'MOVE_RIGHT':
-            card.status = Card.Status.DONE
-        case Card.Status.DONE, 'MOVE_LEFT':
-            card.status = Card.Status.IN_PROGRESS
-        case _:
-            messages.error(request, f'The “{operation}” operation is incorrect in this request')
-            return False
-    card.save()
-    return True
-
-
-def edit_card(request, card: Card):
-    form = CardForm(request.POST)
-
-    if not form.is_valid():
-        for field, list_error in form.errors.items():
-            for error in list_error:
-                messages.error(request, field + ': ' + error)
-        return False
-
-    changed_card = form.save(commit=False)
-    card.title = changed_card.title
-    card.content = changed_card.content
-    card.save()
-    return True
-
-
 def handle_post_request_card(request, card: Card, board: Board, user_with_board: Membership):
     operation = request.POST.get('operation', '')
+    errors = {}
 
     if operation == 'DELETE':
         if not user_with_board.is_owner:
             raise PermissionDenied
-        card.delete()
-        result = True
+        result = utils.delete_card(card)
 
     elif operation == 'EDIT':
         if not user_with_board.is_owner:
             raise PermissionDenied
-        result = edit_card(request, card)
+        card_form = CardForm(request.POST)
+        result, errors = utils.edit_card(card_form, card)
 
     elif 'MOVE' in operation:
-        result = move_card(request, card, operation)
+        result = utils.move_card(card, operation)
 
     else:
-        messages.error(request, f'The “{operation}” operation is incorrect in this request')
         result = False
 
     if not result:
+        if errors:
+            for field, list_error in errors.items():
+                for error in list_error:
+                    messages.error(request, field + ': ' + error)
+        else:
+            messages.error(request, f'The “{operation}” operation is incorrect in this request')
         raise BadRequest
 
     response = redirect('board', board_id=board.id)
