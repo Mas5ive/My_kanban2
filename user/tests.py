@@ -4,6 +4,8 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from user.auth_email import EmailAuthBackend
+
 User = get_user_model()
 
 
@@ -65,5 +67,25 @@ class LoginUserViewTestCase(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTemplateUsed(response, 'auth/login.html')
         self.assertContains(response, 'Please enter a correct username or email and password')
+
+
+class EmailAuthBackendTestCase(TestCase):
+    fixtures = ['data.json']
+
+    def setUp(self):
+        self.backend = EmailAuthBackend()
+        self.username = 'TestUser1'
+        self.password = '321qwe,./'
+        self.email = 'testuser1@mail.com'
+
+    def test_authenticate_success(self):
+        user = self.backend.authenticate(request=None, username=self.email, password=self.password)
+        self.assertIsNotNone(user)
+        self.user = User.objects.get(username=self.username)
+        self.assertEqual(user, self.user)
+
+    def test_authenticate_invalid_email(self):
+        user = self.backend.authenticate(request=None, username='wrong@example.com', password=self.password)
+        self.assertIsNone(user)
 
 
