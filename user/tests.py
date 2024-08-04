@@ -38,3 +38,32 @@ class RegisterUserViewTestCase(TestCase):
         self.assertFalse(User.objects.filter(username=self.user_data['username']).exists())
 
 
+class LoginUserViewTestCase(TestCase):
+    fixtures = ['data.json']
+
+    def setUp(self):
+        self.username = 'TestUser1'
+        self.password = '321qwe,./'
+        self.client = Client()
+        self.url_view = reverse('login')
+
+    def test_success_get_http_method(self):
+        response = self.client.get(self.url_view)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertTemplateUsed(response, 'auth/login.html')
+
+    def test_success_post_http_method(self):
+        response = self.client.post(self.url_view, {'username': self.username, 'password': self.password})
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
+        self.assertRedirects(response, reverse('profile'))
+
+    def test_post_http_method_with_field_error(self):
+        response = self.client.post(
+            self.url_view,
+            {'username': 'non_existent_user', 'password': self.password}
+        )
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertTemplateUsed(response, 'auth/login.html')
+        self.assertContains(response, 'Please enter a correct username or email and password')
+
+
