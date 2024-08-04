@@ -89,3 +89,45 @@ class EmailAuthBackendTestCase(TestCase):
         self.assertIsNone(user)
 
 
+class CustomPasswordChangeViewTestCase(TestCase):
+    fixtures = ['data.json']
+
+    def setUp(self):
+        self.username = 'TestUser1'
+        self.password = '321qwe,./'
+        self.client = Client()
+        self.client.login(username=self.username, password=self.password)
+        self.url_view = reverse('password_change')
+
+    def test_success_get_http_method(self):
+        response = self.client.get(self.url_view)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertTemplateUsed(response, 'user/password_change.html')
+
+    def test_success_post_http_method(self):
+        new_password = 'newpassword123'
+        response = self.client.post(
+            self.url_view,
+            {
+                'old_password': self.password,
+                'new_password1': new_password,
+                'new_password2': new_password
+            }
+        )
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
+        self.assertRedirects(response, reverse('password_change_done'))
+        user = User.objects.get(username=self.username)
+        self.assertEqual(user.check_password(new_password), True)
+
+    def test_post_http_method_with_field_error(self):
+        response = self.client.post(
+            self.url_view,
+            {
+                'old_password': self.password,
+                'new_password1': 'newpassword123',
+                'new_password2': 'differentpassword'
+            }
+        )
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertTemplateUsed(response, 'user/password_change.html')
+        self.assertContains(response, "The two password fields didn’t match")
