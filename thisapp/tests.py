@@ -82,3 +82,61 @@ class ProfileViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
         self.assertQuerySetEqual(response.context['invitations'], user_invitation)
 
 
+class CreateCardViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
+    fixtures = ['data.json']
+
+    def setUp(self):
+        self.username = 'TestUser1'
+        self.password = '321qwe,./'
+        self.client = Client()
+        self.client.login(username=self.username, password=self.password)
+        self.title_view = 'card_create'
+        self.owner_board_id = 1
+
+    def test_login_required(self):
+        self.client.logout()
+        response = self.client.get(reverse(self.title_view, args=[self.owner_board_id]))
+        self.assertRedirects(
+            response,
+            f"{reverse('login')}?next=" +
+            f"{reverse(self.title_view, args=[self.owner_board_id])}"
+        )
+
+    @parametrize('method_name', [['put'], ['head'], ['patch'], ['delete']])
+    def test_mot_allowed_http_methods(self, method_name: str):
+        method = getattr(self.client, method_name)
+        response = method(reverse(self.title_view, args=[self.owner_board_id]))
+        self.assertEqual(response.status_code, HTTPStatus.METHOD_NOT_ALLOWED)
+
+    def test_success_get_http_method(self):
+        response = self.client.get(reverse(self.title_view, args=[self.owner_board_id]))
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertIsInstance(response.context['form'], CardForm)
+        self.assertTemplateUsed(response, 'card/create.html')
+
+    @parametrize(
+        ('board_id', 'expected_status_code'),
+        [
+            (3, HTTPStatus.FORBIDDEN),  # no access board_id
+            (100, HTTPStatus.NOT_FOUND),  # not exists board_id
+        ]
+    )
+    def test_invalid_get_http_method(self, board_id, expected_status_code):
+        response = self.client.get(reverse(self.title_view, args=[board_id]))
+        self.assertEqual(response.status_code, expected_status_code)
+
+    @parametrize(
+        ('data', 'is_number_of_cards_changed', 'expected_status_code'),
+        [
+            ({}, True, HTTPStatus.BAD_REQUEST),
+            ({'title': 'New card', 'contant': 'Some content'}, False, HTTPStatus.SEE_OTHER),
+        ]
+    )
+    def test_post_http_method(self, data, is_number_of_cards_changed, expected_status_code):
+        count_cards_before_request = Card.objects.filter(board_id=self.owner_board_id).count()
+        response = self.client.post(reverse(self.title_view, args=[self.owner_board_id]), data)
+        self.assertEqual(response.status_code, expected_status_code)
+        count_cards_after_request = Card.objects.filter(board_id=self.owner_board_id).count()
+        self.assertEqual(count_cards_before_request == count_cards_after_request, is_number_of_cards_changed)
+
+
