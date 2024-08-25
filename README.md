@@ -45,6 +45,10 @@ poetry shell
 pip install -r requirements.txt
 ```
 
+## Preparation
+
+You must create an .env file based on the .env.example file.It describes the environment variables for the project. The particularly important ones concern OAuth2 via github. You need to create a github app in the developer settings and use the generated keys.
+
 ## Run
 
 ```bash
