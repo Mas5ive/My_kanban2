@@ -47,19 +47,15 @@ pip install -r requirements.txt
 
 ## Preparation
 
-You must create an .env file based on the .env.example file.It describes the environment variables for the project. The particularly important ones concern OAuth2 via github. You need to create a github app in the developer settings and use the generated keys.
+1. You must create an .env file based on the .env.example file.It describes the environment variables for the project. The particularly important ones concern OAuth2 via github. You need to create a github app in the developer settings and use the generated keys.
 
-## Run
+2. After you do this, remember to run the command:
 
-```bash
-python3 manage.py migrate
-```
+    ```bash
+    python3 manage.py migrate
+    ```
 
-```bash
-python3 manage.py runserver
-```
-
-## Turn on the demo (optional)
+## Turn on the demo
 
 ```bash
 python3 manage.py loaddata data.json
@@ -76,3 +72,7 @@ This example creates 3 users with the same passwords (321qwe,./):
 | TestUser3 | <testuser3@mall.com>  |
 
 Use them to get a peek behind the scenes!
+
+```bash
+python3 manage.py runserver
+```
