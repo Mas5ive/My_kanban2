@@ -1,4 +1,5 @@
 {% extends 'card/base.html' %}
+{% load static %}
 
 {% block title %}
 <title>Create new card</title>
@@ -9,12 +10,7 @@
 {% endblock %}
 
 {% block style %}
-<style>
-    main {
-        align-items: center;
-        flex-direction: column;
-    }
-</style>
+<link rel="stylesheet" type="text/css" href="{% static 'thisapp/css/card_create.css' %}">
 {% endblock %}
 
 

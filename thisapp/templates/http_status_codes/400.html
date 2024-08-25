@@ -10,7 +10,7 @@
 
 {% block content %}
 {% load static %}
-<img src="{% static 'images/400.png' %}" alt="error sign"> 
+<img src="{% static 'thisapp/images/400.png' %}" alt="error sign"> 
 {% if messages %}
     {% for message in messages %}
         <h3 class="{{ message.tags }}-message">{{ message }}<h3>

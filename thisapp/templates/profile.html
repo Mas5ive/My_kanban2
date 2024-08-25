@@ -1,35 +1,15 @@
 <!DOCTYPE html>
+
 <html lang="en">
+    {% load static %}
     
     <head>
         {% include 'includes/common_head.html' %}
+        <link rel="stylesheet" type="text/css" href="{% static 'thisapp/css/profile.css' %}">
         <title>{{ user.username }}`s profile</title>
-        <style>
-            main {
-                flex-direction: column;
-                padding-left: 20px;
-                padding-bottom: 20px;
-            }
-    
-            .board-button {
-                padding: 10px 10px;
-                border-radius: 5px;
-                color: white;
-                font-size: 18px;
-                background-color: #251a0d;
-                border: none;
-            }
-    
-            .line-block {
-                display: flex;
-                flex-direction: row;
-                gap: 10px;
-            }
-        </style>
     </head>
     
     <body>
-
         <header>
             <form action="{% url 'logout' %}" method="get">
                 <button class="transparent-button">Log out</button>

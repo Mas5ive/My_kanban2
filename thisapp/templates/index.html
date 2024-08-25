@@ -1,22 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+    {% load static %}
 
     <head>
         {% include 'includes/common_head.html' %}
+        <link rel="stylesheet" type="text/css" href="{% static 'thisapp/css/index.css' %}">
         <title>KANBAN</title>
-        <style>
-            main {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                margin: 2%;
-            }
-
-            main>img {
-                width: 500px;
-                height: 437px;
-            }
-        </style>
     </head>
 
     <body>
@@ -33,8 +22,7 @@
         </header>
 
         <main>
-            {% load static %}
-            <img src="{% static 'images/ninja.png' %}" alt="ninja programmer">
+            <img src="{% static 'thisapp/images/ninja.png' %}" alt="ninja programmer">
             <h2>A totally innovative service that allows you to organise your problem solving process.</h2>
             <p>Invite people to projects, organise discussions and solve problems together!</p>
         </main>

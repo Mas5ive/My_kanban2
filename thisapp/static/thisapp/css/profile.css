@@ -1,0 +1,20 @@
+main {
+    flex-direction: column;
+    padding-left: 20px;
+    padding-bottom: 20px;
+}
+
+.board-button {
+    padding: 10px 10px;
+    border-radius: 5px;
+    color: white;
+    font-size: 18px;
+    background-color: #251a0d;
+    border: none;
+}
+
+.line-block {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+}
