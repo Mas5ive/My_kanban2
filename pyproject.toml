@@ -12,6 +12,7 @@ django = "4.2"
 django-debug-toolbar = "4.2.0"
 social-auth-app-django = "^5.4.1"
 gunicorn = "^23.0.0"
+python-dotenv = "^1.0.1"
 
 
 [build-system]
