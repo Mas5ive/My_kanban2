@@ -1,5 +1,7 @@
-.venv
+.git
+venv
 *.env
+.venv
 .vscode
 __pycache__
 .pytest_cache

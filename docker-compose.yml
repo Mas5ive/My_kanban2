@@ -1,0 +1,28 @@
+services:
+
+  django:
+    container_name: django
+    hostname: django
+    build:
+      context: .
+    ports:
+      - 8000:8000
+    env_file:
+      - .env
+    volumes:
+      - my_kanban2_db:/app/db
+      - my_kanban2_static:/app/staticfiles
+      - my_kanban2_media:/app/media
+    restart: no
+    command: gunicorn my_kanban2.wsgi --bind 0.0.0.0:8000
+    networks: 
+      - my_kanban2_network
+
+
+networks:
+  my_kanban2_network:
+
+volumes:
+  my_kanban2_static:
+  my_kanban2_media:
+  my_kanban2_db:
