@@ -1,5 +1,24 @@
 services:
 
+  postgresql:
+    container_name: postgresql
+    hostname: postgresql
+    image: postgres:13-alpine
+    expose:
+      - 5432
+    env_file:
+      - .env
+    volumes:
+      - my_kanban2_db:/var/lib/postgresql/data/
+    restart: no
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
+      interval: 5s
+      timeout: 3s
+      retries: 4
+    networks: 
+      - my_kanban2_network
+    
   django:
     container_name: django
     hostname: django
@@ -10,11 +29,12 @@ services:
     env_file:
       - .env
     volumes:
-      - my_kanban2_db:/app/db
       - my_kanban2_static:/app/staticfiles
       - my_kanban2_media:/app/media
     restart: no
-    command: gunicorn my_kanban2.wsgi --bind 0.0.0.0:8000
+    depends_on:
+      postgresql:
+        condition: service_healthy
     networks: 
       - my_kanban2_network
 
