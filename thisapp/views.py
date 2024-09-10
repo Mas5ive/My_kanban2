@@ -5,7 +5,6 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import BadRequest, PermissionDenied
 from django.db import transaction
-from django.db.utils import IntegrityError
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import (get_list_or_404, get_object_or_404, redirect,
                               render)
@@ -16,7 +15,7 @@ from user.models import CustomUser
 
 from . import utils
 from .forms import CardForm, CommentForm, CreateBoardForm
-from .models import Board, Card, Comment, Invitation, Membership
+from .models import Board, Card, Comment, Membership
 
 
 @custom_require_http_methods(['GET'])
@@ -36,13 +35,11 @@ def profile_view(request):
         else:
             boards['invitation boards'].append(user.board)
 
-    invitations = Invitation.objects.filter(user_recipient=request.user).select_related('board', 'user_sender')
-
     context = {
         'form': CreateBoardForm(),
         'owner_boards': boards['owner boards'],
         'invitation_boards': boards['invitation boards'],
-        'invitations': invitations,
+        'invitations': utils.get_user_invitations(request.user.username),
     }
     return render(request, 'profile.html', context=context)
 
@@ -55,7 +52,8 @@ def handle_board_view(request, board_id):
         id=board_id,
     )
 
-    user_with_board = Membership.objects.filter(user=request.user, board=board).first()
+    user = request.user
+    user_with_board = Membership.objects.filter(user=user, board=board).first()
 
     if not user_with_board:
         raise PermissionDenied
@@ -65,6 +63,7 @@ def handle_board_view(request, board_id):
             raise PermissionDenied
         else:
             board.delete()
+            utils.delete_board_invitations(board_id)
             return redirect('profile')
 
     grouped_cards = defaultdict(list)
@@ -111,28 +110,24 @@ def сreate_invitation_view(request, board_id):
     if not any(m.is_owner and m.user == sender for m in membership):
         raise PermissionDenied
 
-    recipient_username = request.POST.get('recipient', '')
-    recipient = CustomUser.objects.filter(username=recipient_username).first()
+    recipient_name = request.POST.get('recipient', '')
+    recipient = CustomUser.objects.filter(username=recipient_name).first()
 
     if not recipient:
-        messages.error(request, f'User "{recipient_username}" does not exist')
+        messages.error(request, f'User "{recipient_name}" does not exist')
         raise BadRequest
 
     if any(m.user == recipient for m in membership):
-        messages.error(request, f'User "{recipient_username}" is already a member of the board')
+        messages.error(request, f'User "{recipient_name}" is already a member of the board')
         raise BadRequest
 
-    try:
-        Invitation.objects.create(
-            user_recipient=recipient,
-            board_id=board_id,
-            user_sender=sender
-        )
-    except IntegrityError:
-        messages.error(request, f'User "{recipient_username}" has already received an invitation')
+    if utils.get_invitation(board_id, recipient_name):
+        messages.error(request, f'User "{recipient_name}" has already received an invitation')
         raise BadRequest
 
+    utils.create_invitation(board_id, sender.username, recipient_name)
     messages.success(request, 'The invitation has been sent!')
+
     response = redirect('board', board_id=board_id)
     response.status_code = 303
     return response
@@ -166,23 +161,27 @@ def delete_member_view(request, board_id):
 @login_required
 @custom_require_http_methods(['POST'])
 def pick_invitation_view(request, board_id):
-    recipient = request.user
     board = get_object_or_404(Board, id=board_id)
-    invitation = get_object_or_404(Invitation, board=board, user_recipient=recipient)
+    user = CustomUser.objects.get(username=request.user)
+
+    if not utils.get_invitation(board.id, user.username):
+        messages.error(request, f'The user {user.username} does not have an invitation to the board')
+        raise BadRequest
 
     operation = request.POST.get('operation', '')
+
     if operation == 'accept':
-        with transaction.atomic():
-            invitation.delete()
-            Membership.objects.create(
-                user=recipient,
-                board_id=board_id
-            )
+        Membership.objects.create(
+            user=user,
+            board_id=board_id
+        )
     elif operation == 'reject':
-        invitation.delete()
+        pass
     else:
         messages.error(request, f'The “{operation}” operation is incorrect in this request')
         raise BadRequest
+
+    utils.delete_invitation(board_id, user.username)
 
     response = redirect('profile')
     response.status_code = 303

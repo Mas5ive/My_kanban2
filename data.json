@@ -775,15 +775,6 @@
   }
 },
 {
-  "model": "thisapp.invitation",
-  "pk": 4,
-  "fields": {
-    "user_recipient": 1,
-    "board": 3,
-    "user_sender": 2
-  }
-},
-{
   "model": "thisapp.card",
   "pk": 1,
   "fields": {

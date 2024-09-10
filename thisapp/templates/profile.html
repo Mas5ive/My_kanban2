@@ -66,7 +66,7 @@
                 <h2>Invitations</h2>
                 {% for invitation in invitations %}
                 <div class="line-block">
-                    {{ invitation.user_sender.username }} invites you to "{{ invitation.board.title }}"
+                    {{ invitation.sender_name }} invites you to "{{ invitation.board_title }}"
                     <form action="{% url 'pick_invitation' board_id=invitation.board_id %}" method="post">
                         {% csrf_token %}
                         <input type="hidden" name="operation" value="reject">
