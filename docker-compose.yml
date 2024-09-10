@@ -19,6 +19,22 @@ services:
     networks: 
       - my_kanban2_network
     
+  redis:
+    container_name: redis
+    hostname: redis
+    image: redis:7.4.0-alpine
+    expose:
+      - 6379
+    env_file:
+      - .env
+    volumes:
+      - my_kanban2_invitations:/data
+      - ./redis_db/entrypoint.sh:/usr/local/bin/init-redis.sh
+    restart: no
+    entrypoint: ["/usr/local/bin/init-redis.sh"]
+    networks:
+      - my_kanban2_network
+    
   django:
     container_name: django
     hostname: django
@@ -61,3 +77,4 @@ volumes:
   my_kanban2_static:
   my_kanban2_media:
   my_kanban2_db:
+  my_kanban2_invitations:
