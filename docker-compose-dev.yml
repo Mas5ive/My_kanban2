@@ -1,0 +1,64 @@
+services:
+
+  postgresql:
+    container_name: dev_postgresql
+    hostname: dev_postgresql
+    image: postgres:13-alpine
+    ports:
+      - 5432:5432
+    env_file:
+      - .env
+    volumes:
+      - dev_db:/var/lib/postgresql/data/
+    restart: no
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
+      interval: 5s
+      timeout: 3s
+      retries: 4
+    networks: 
+      - dev_network
+    
+  redis:
+    container_name: dev_redis
+    hostname: dev_redis
+    image: redis:7.4.0-alpine
+    ports:
+      - 6379:6379
+    env_file:
+      - .env
+    volumes:
+      - dev_invitations:/data
+    restart: no
+    entrypoint: ["redis-server"]
+    command: ["--requirepass", "$REDIS_PASSWORD"]
+    networks:
+      - dev_network
+    
+  django:
+    container_name: dev_django
+    hostname: dev_django
+    build:
+      context: .
+    ports:
+      - 8000:8000
+      - 5678:5678
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    restart: no
+    command: ["/app/entrypoint.sh"]
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    networks: 
+      - dev_network
+
+
+networks:
+  dev_network:
+
+volumes:
+  dev_db:
+  dev_invitations:

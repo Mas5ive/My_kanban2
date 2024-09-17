@@ -1,0 +1,51 @@
+services:
+
+  postgresql:
+    container_name: test_postgresql
+    hostname: test_postgresql
+    image: postgres:13-alpine
+    expose:
+      - 5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=0000
+      - POSTGRES_DB=my_kanban2
+    restart: no
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 4
+    networks: 
+      - test_network
+    
+    
+  django:
+    container_name: test_django
+    hostname: test_django
+    build:
+      context: .
+    expose:
+      - 8000
+    environment:
+      - SECRET_KEY=your-secret-key-here
+      - ALLOWED_HOSTS=127.0.0.1,localhost
+      - POSTGRES_HOST=postgresql
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=0000
+      - POSTGRES_DB=my_kanban2
+    volumes:
+      - .:/app
+    restart: no
+    entrypoint: ["python3", "manage.py", "test"]
+    command: ["."]
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    networks: 
+      - test_network
+
+
+networks:
+  test_network:

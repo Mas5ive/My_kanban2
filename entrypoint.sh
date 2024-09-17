@@ -1,14 +1,14 @@
 #!/bin/sh
 
-if [ "$DEMO_MODE" = "True" ]; then
-  echo "DEMO is going"
-
+if [ "$MIGRATION" = "True" ]; then
+  echo "MIGRATION is going"
   python3 manage.py migrate
-  python3 manage.py loaddata data.json
-  python3 manage.py collectstatic
-  
-else
-  echo "DEMO is skipping"
 fi
 
-exec gunicorn my_kanban2.wsgi --bind 0.0.0.0:8000
+if [ "$DEBUG" = "True" ]; then
+  echo "Run your debug client now!" 
+  exec python3 -m debugpy --wait-for-client --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000
+else
+  python3 manage.py collectstatic
+  exec gunicorn my_kanban2.wsgi --bind 0.0.0.0:8000
+fi
