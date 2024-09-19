@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
@@ -25,7 +26,9 @@ class RegisterUserViewTestCase(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTemplateUsed(response, 'auth/register.html')
 
-    def test_success_post_http_method(self):
+    @patch('thisapp.utils.get_user_invitations')
+    def test_success_post_http_method(self, mock_get_user_invitations):
+        mock_get_user_invitations.return_value = []
         response = self.client.post(self.url_view, self.user_data)
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
         self.assertRedirects(response, reverse('profile'))
@@ -54,7 +57,9 @@ class LoginUserViewTestCase(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTemplateUsed(response, 'auth/login.html')
 
-    def test_success_post_http_method(self):
+    @patch('thisapp.utils.get_user_invitations')
+    def test_success_post_http_method(self, mock_get_user_invitations):
+        mock_get_user_invitations.return_value = []
         response = self.client.post(self.url_view, {'username': self.username, 'password': self.password})
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
         self.assertRedirects(response, reverse('profile'))

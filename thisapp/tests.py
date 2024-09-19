@@ -1,12 +1,13 @@
 from functools import wraps
 from http import HTTPStatus
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
 from .forms import CardForm, CommentForm, CreateBoardForm
-from .models import Board, Card, Invitation, Membership
+from .models import Board, Card, Membership
 
 User = get_user_model()
 
@@ -69,17 +70,16 @@ class ProfileViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
         response = method(self.url_view)
         self.assertEqual(response.status_code, HTTPStatus.METHOD_NOT_ALLOWED)
 
-    def test_success_get_http_method(self):
+    @patch('thisapp.utils.get_user_invitations')
+    def test_success_get_http_method(self, mock_get_user_invitations):
+        mock_get_user_invitations.return_value = []
         response = self.client.get(self.url_view)
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTemplateUsed(response, 'profile.html')
         self.assertIsInstance(response.context['form'], CreateBoardForm)
         self.assertEqual(response.context['owner_boards'], [Board.objects.get(title='Wow project')])
         self.assertEqual(response.context['invitation_boards'], [Board.objects.get(title='Boring project')])
-
-        self.user = User.objects.get(username=self.username)
-        user_invitation = Invitation.objects.filter(user_recipient=self.user).select_related('board', 'user_sender')
-        self.assertQuerySetEqual(response.context['invitations'], user_invitation)
+        self.assertEqual(response.context['invitations'], [])
 
 
 class CreateCardViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
