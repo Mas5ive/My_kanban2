@@ -1,8 +1,14 @@
-# My-kanban
+# My-kanban2
 
 ## Description
 
-A simple multi-user kanban application written on the Django 4.2 web framework.
+A simple multi-user kanban application written on the Django 4.2.15 web framework. This is a demonstration project. Tests cover a small portion of the code intentionally.
+
+The project uses:
+
+- nginx
+- postgres
+- redis
 
 ### Available features
 
@@ -17,51 +23,29 @@ A simple multi-user kanban application written on the Django 4.2 web framework.
 
 ## Installation
 
+You will need to have a **docker** to run it.
+
 ```bash
-git clone https://github.com/Mas5ive/My_kanban2
+git clone https://github.com/Mas5ive/My_kanban2.git
 ```
 
 ```bash
 cd My_kanban2/
 ```
 
-### Using Poetry
+## Preparation (optional)
 
-```bash
-poetry install
-```
-
-```bash
-poetry shell
-```
-
-### Using pip
-
-- сreate a virtual environment
-- activate it
-- and run the command:
-
-```bash
-pip install -r requirements.txt
-```
-
-## Preparation
-
-1. You must create an .env file based on the .env.example file.It describes the environment variables for the project. The particularly important ones concern OAuth2 via github. You need to create a github app in the developer settings and use the generated keys.
-
-2. After you do this, remember to run the command:
-
-    ```bash
-    python3 manage.py migrate
-    ```
+ To try out github login, you need to create a github app in your developer settings and use the generated keys. In the **docker-compose-demo.yml** file in the service with django, find the environment variables for github and replace them with your keys.
 
 ## Turn on the demo
 
+### Run
+
 ```bash
-python3 manage.py loaddata data.json
+docker compose -f docker-compose-demo.yml up --build
 ```
 
-This command will fill the database with content that will allow you to evaluate **most** of the application's features.
+On your localhost on port 80 the application will become available after some time...
 
 This example creates 3 users with the same passwords (321qwe,./):
 
@@ -73,6 +57,12 @@ This example creates 3 users with the same passwords (321qwe,./):
 
 Use them to get a peek behind the scenes!
 
+To stop the application, press Ctrl-c.
+
+### Delete
+
+Enter this command to completely remove docker related files:
+
 ```bash
-python3 manage.py runserver
+docker compose -f docker-compose-demo.yml down -v
 ```
