@@ -12,7 +12,6 @@ django = "4.2.15"
 django-debug-toolbar = "4.2.0"
 social-auth-app-django = "^5.4.1"
 gunicorn = "^23.0.0"
-python-dotenv = "^1.0.1"
 psycopg2-binary = "^2.9.9"
 redis = {extras = ["hiredis"], version = "^5.0.8"}
 
