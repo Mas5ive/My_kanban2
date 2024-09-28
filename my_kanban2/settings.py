@@ -182,3 +182,29 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = 'profile'
 LOGIN_URL = 'login'
 LOGOUT_REDIRECT_URL = 'index'
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    'handlers': {
+        'console': {
+            'level': 'ERROR',
+            'class': 'logging.StreamHandler',
+            'formatter': 'main',
+        },
+    },
+
+    'root': {
+        'handlers': ['console'],
+        'level': 'ERROR',
+    },
+
+    'formatters': {
+        'main': {
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        }
+    },
+}
