@@ -1,8 +1,10 @@
 # My-kanban2
 
+[![Django Tests](https://github.com/Mas5ive/My_kanban2/actions/workflows/check.yml/badge.svg)](https://github.com/Mas5ive/My_kanban2/actions/workflows/check.yml)
+
 ## Description
 
-A simple multi-user kanban application written on the Django 4.2.15 web framework. This is a demonstration project. Tests cover a small portion of the code intentionally.
+A simple multi-user kanban application written on the Django 4.2 web framework. This is a demonstration project. Tests cover a small portion of the code intentionally.
 
 The project uses:
 
@@ -35,7 +37,12 @@ cd My_kanban2/
 
 ## Preparation (optional)
 
- To try out github login, you need to create a github app in your developer settings and use the generated keys. In the **docker-compose-demo.yml** file in the service with django, find the environment variables for github and replace them with your keys.
+ To try out github login, you need to create a github app in your developer settings.
+
+- Specify values in the following fields:
+  - Homepage URL: <https://127.0.0.1>
+  - Authorization callback URL: <https://127.0.0.1/complete/github/>
+- Generate keys and use them in the **docker-compose-demo.yml** file in the service with django, find the environment variables for github and replace them with your keys.
 
 ## Turn on the demo
 
