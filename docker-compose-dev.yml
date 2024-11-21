@@ -46,9 +46,25 @@ services:
     env_file:
       - .env
     volumes:
-      - .:/app
+      - dev_static:/app/staticfiles
+      - dev_media:/app/media
     restart: no
-    command: ["/app/entrypoint.sh"]
+    command: |
+      sh -c "
+      echo 'MIGRATION is going!' &&
+      python3 manage.py migrate &&
+      exec python3 -m debugpy --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000
+      "
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .venv/
+
+        - action: rebuild
+          path: ./pyproject.toml
     depends_on:
       postgresql:
         condition: service_healthy
@@ -62,3 +78,5 @@ networks:
 volumes:
   dev_db:
   dev_invitations:
+  dev_static:
+  dev_media:

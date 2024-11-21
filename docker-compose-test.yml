@@ -36,7 +36,9 @@ services:
       - POSTGRES_PASSWORD=0000
       - POSTGRES_DB=my_kanban2
     volumes:
-      - .:/app
+      - ./my_kanban2:/app/my_kanban2
+      - ./thisapp:/app/thisapp
+      - ./user:/app/user
     restart: no
     entrypoint: ["python3", "manage.py", "test"]
     command: ["."]
