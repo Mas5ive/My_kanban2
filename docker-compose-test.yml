@@ -25,6 +25,7 @@ services:
     hostname: test_django
     build:
       context: .
+      target: base
     expose:
       - 8000
     environment:

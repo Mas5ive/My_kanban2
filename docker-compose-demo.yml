@@ -40,6 +40,7 @@ services:
     hostname: demo_django
     build:
       context: .
+      target: base
     ports:
       - 8000:8000
     environment:
