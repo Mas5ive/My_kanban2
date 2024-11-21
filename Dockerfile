@@ -1,16 +1,14 @@
 FROM python:3.10.12-slim
 
+COPY --from=ghcr.io/astral-sh/uv:0.5.2 /uv /uvx /bin/
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ENV UV_LINK_MODE=copy
+ENV PATH="/app/.venv/bin:$PATH"
 
-COPY ./requirements.txt .
-
-RUN pip install --upgrade --no-cache-dir -r requirements.txt
-
-RUN pip install debugpy
-
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen
+    
 COPY . .
-
-CMD ["gunicorn", "my_kanban2.wsgi", "--bind", "0.0.0.0:8000"]
