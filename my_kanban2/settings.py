@@ -27,9 +27,13 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
+INTERNAL_IPS = []
+if DEBUG:
+    INTERNAL_IPS = [
+        'localhost'
+        '127.0.0.1',
+        '172.21.0.1',  # for a docker container
+    ]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_HSTS_SECONDS = 0
@@ -48,9 +52,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'thisapp.apps.ThisappConfig',
     'user.apps.UserConfig',
-    "debug_toolbar",
     'social_django',
 ]
+if DEBUG:
+    INSTALLED_APPS.append('debug_toolbar')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -60,8 +65,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
+if DEBUG:
+    MIDDLEWARE.append('debug_toolbar.middleware.DebugToolbarMiddleware')
 
 ROOT_URLCONF = 'my_kanban2.urls'
 
