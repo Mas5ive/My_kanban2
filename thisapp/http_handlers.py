@@ -1,5 +1,8 @@
+import os
 from functools import wraps
 
+from django.conf import settings
+from django.http import FileResponse
 from django.shortcuts import render
 from django.utils.log import log_response
 
@@ -40,3 +43,8 @@ def custom_require_http_methods(request_method_list):
         return inner
 
     return decorator
+
+
+def payload_too_large_view(request, exception=None):
+    file_path = os.path.join(settings.BASE_DIR, 'my_kanban2', 'static', '413.html')
+    return FileResponse(open(file_path, 'rb'), content_type='text/html', status=413)

@@ -10,7 +10,8 @@ from django.shortcuts import (get_list_or_404, get_object_or_404, redirect,
                               render)
 from django.urls import reverse
 
-from thisapp.http_handlers import custom_require_http_methods
+from thisapp.http_handlers import (custom_require_http_methods,
+                                   payload_too_large_view)
 from user.models import CustomUser
 
 from . import utils
@@ -294,10 +295,13 @@ def create_comment_view(request, board_id, card_id):
     form = CommentForm(request.POST, request.FILES)
 
     if not form.is_valid():
+        if 'file' in form.errors and any('size' in error for error in form.errors['file']):
+            return payload_too_large_view(request)
+
         for field, list_error in form.errors.items():
             for error in list_error:
                 messages.error(request, field + ': ' + error)
-            raise BadRequest
+        raise BadRequest
 
     comment = form.save(commit=False)
     comment.card_id = card.id
