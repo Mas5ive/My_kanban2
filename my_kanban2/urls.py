@@ -19,11 +19,14 @@ import my_kanban2.settings as settings
 from django.urls import include, path
 from thisapp import http_handlers
 
+from .health_check import health_check
+
 urlpatterns = [
     # path('admin/', admin.site.urls),
     path('', include('thisapp.urls')),
     path('', include('user.urls')),
     path('', include('social_django.urls', namespace='social')),
+    path('health/', health_check, name='health_check'),
 ]
 if settings.DEBUG:
     urlpatterns.append(path("__debug__/", include("debug_toolbar.urls")),)
