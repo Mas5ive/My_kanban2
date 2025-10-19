@@ -1,9 +1,8 @@
 import json
 
-from redis_db import INVITATION_PREFIX, RECIPIENT_PREFIX, redis_client
-
 from .forms import CardForm
 from .models import Board, Card
+from .redis_client import INVITATION_PREFIX, RECIPIENT_PREFIX, redis_client
 
 
 def move_card(card: Card, operation: str):

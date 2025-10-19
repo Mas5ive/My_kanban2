@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 # from django.contrib import admin
+import my_kanban2.settings as settings
 from django.urls import include, path
 from thisapp import http_handlers
 
@@ -23,8 +24,10 @@ urlpatterns = [
     path('', include('thisapp.urls')),
     path('', include('user.urls')),
     path('', include('social_django.urls', namespace='social')),
-    path("__debug__/", include("debug_toolbar.urls")),
 ]
+if settings.DEBUG:
+    urlpatterns.append(path("__debug__/", include("debug_toolbar.urls")),)
+
 
 handler400 = http_handlers.bad_request_view
 handler403 = http_handlers.permission_denied_view

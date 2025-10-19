@@ -1,0 +1,49 @@
+services:
+
+  db:
+    ports:
+      - 5432:5432
+    restart: no
+    
+  cache:
+    ports:
+      - 6379:6379
+    restart: no
+    entrypoint: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    
+  backend:
+    ports:
+      - 5678:5678
+      - 8000:8000
+    environment:
+      - DEBUG=True
+    develop:
+      watch:
+        - action: sync
+          path: ./manage.py
+          target: /app/manage.py
+
+        - action: sync
+          path: ./my_kanban2
+          target: /app/my_kanban2
+
+        - action: sync
+          path: ./thisapp
+          target: /app/thisapp
+
+        - action: sync
+          path: ./user
+          target: /app/user
+
+        - action: rebuild
+          path: ./pyproject.toml
+          target: /app/pyproject.toml
+    command: |
+      sh -c "
+      python3 manage.py migrate &&
+      exec python3 -m debugpy --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000
+      "
+    restart: no
+
+  server:
+    restart: no

@@ -14,4 +14,4 @@ redis-cli SADD "recipient:TestUser1" "invitation:TestUser1:3"
 
 redis-cli shutdown
 
-exec redis-server
+exec redis-server --requirepass ${REDIS_PASSWORD}

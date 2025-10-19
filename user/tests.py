@@ -44,7 +44,7 @@ class RegisterUserViewTestCase(TestCase):
 
 
 class LoginUserViewTestCase(TestCase):
-    fixtures = ['data.json']
+    fixtures = ['demo/demo-data.json']
 
     def setUp(self):
         self.username = 'TestUser1'
@@ -75,7 +75,7 @@ class LoginUserViewTestCase(TestCase):
 
 
 class EmailAuthBackendTestCase(TestCase):
-    fixtures = ['data.json']
+    fixtures = ['demo/demo-data.json']
 
     def setUp(self):
         self.backend = EmailAuthBackend()
@@ -95,7 +95,7 @@ class EmailAuthBackendTestCase(TestCase):
 
 
 class CustomPasswordChangeViewTestCase(TestCase):
-    fixtures = ['data.json']
+    fixtures = ['demo/demo-data.json']
 
     def setUp(self):
         self.username = 'TestUser1'

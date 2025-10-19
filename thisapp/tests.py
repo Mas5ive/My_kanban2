@@ -50,7 +50,7 @@ class ParametrizedTestCaseMeta(type):
 
 
 class ProfileViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
-    fixtures = ['data.json']
+    fixtures = ['demo/demo-data.json']
 
     def setUp(self):
         self.username = 'TestUser1'
@@ -83,7 +83,7 @@ class ProfileViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
 
 
 class CreateCardViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
-    fixtures = ['data.json']
+    fixtures = ['demo/demo-data.json']
 
     def setUp(self):
         self.username = 'TestUser1'
@@ -141,7 +141,7 @@ class CreateCardViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
 
 
 class HandleCardViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
-    fixtures = ['data.json']
+    fixtures = ['demo/demo-data.json']
 
     OWNER_BOARD_ID = 1
     OWNER_BOARD_BACKLOG_CARD_ID = 2

@@ -1,6 +1,1 @@
-.git
-*.env
-.venv
-.vscode
 __pycache__
-*.sqlite3
