@@ -70,7 +70,7 @@ class ProfileViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
         response = method(self.url_view)
         self.assertEqual(response.status_code, HTTPStatus.METHOD_NOT_ALLOWED)
 
-    @patch('thisapp.utils.get_user_invitations')
+    @patch('thisapp.invitations.get_user_invitations')
     def test_success_get_http_method(self, mock_get_user_invitations):
         mock_get_user_invitations.return_value = []
         response = self.client.get(self.url_view)

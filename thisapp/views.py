@@ -14,6 +14,7 @@ from thisapp.http_handlers import custom_require_http_methods
 from user.models import CustomUser
 
 from . import utils
+from . import invitations as invs
 from .forms import CardForm, CommentForm, CreateBoardForm
 from .models import Board, Card, Comment, Membership
 
@@ -39,7 +40,7 @@ def profile_view(request):
         'form': CreateBoardForm(),
         'owner_boards': boards['owner boards'],
         'invitation_boards': boards['invitation boards'],
-        'invitations': utils.get_user_invitations(request.user.username),
+        'invitations': invs.get_user_invitations(request.user.username),
     }
     return render(request, 'profile.html', context=context)
 
@@ -63,7 +64,7 @@ def handle_board_view(request, board_id):
             raise PermissionDenied
         else:
             board.delete()
-            utils.delete_board_invitations(board_id)
+            invs.delete_board_invitations(board_id)
             return redirect('profile')
 
     grouped_cards = defaultdict(list)
@@ -121,11 +122,11 @@ def сreate_invitation_view(request, board_id):
         messages.error(request, f'User "{recipient_name}" is already a member of the board')
         raise BadRequest
 
-    if utils.get_invitation(board_id, recipient_name):
+    if invs.get_invitation(board_id, recipient_name):
         messages.error(request, f'User "{recipient_name}" has already received an invitation')
         raise BadRequest
 
-    utils.create_invitation(board_id, sender.username, recipient_name)
+    invs.create_invitation(board_id, sender.username, recipient_name)
     messages.success(request, 'The invitation has been sent!')
 
     response = redirect('board', board_id=board_id)
@@ -164,7 +165,7 @@ def pick_invitation_view(request, board_id):
     board = get_object_or_404(Board, id=board_id)
     user = CustomUser.objects.get(username=request.user)
 
-    if not utils.get_invitation(board.id, user.username):
+    if not invs.get_invitation(board.id, user.username):
         messages.error(request, f'The user {user.username} does not have an invitation to the board')
         raise BadRequest
 
@@ -181,7 +182,7 @@ def pick_invitation_view(request, board_id):
         messages.error(request, f'The “{operation}” operation is incorrect in this request')
         raise BadRequest
 
-    utils.delete_invitation(board_id, user.username)
+    invs.delete_invitation(board_id, user.username)
 
     response = redirect('profile')
     response.status_code = 303

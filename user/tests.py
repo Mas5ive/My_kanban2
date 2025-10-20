@@ -26,7 +26,7 @@ class RegisterUserViewTestCase(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTemplateUsed(response, 'auth/register.html')
 
-    @patch('thisapp.utils.get_user_invitations')
+    @patch('thisapp.invitations.get_user_invitations')
     def test_success_post_http_method(self, mock_get_user_invitations):
         mock_get_user_invitations.return_value = []
         response = self.client.post(self.url_view, self.user_data)
@@ -57,7 +57,7 @@ class LoginUserViewTestCase(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTemplateUsed(response, 'auth/login.html')
 
-    @patch('thisapp.utils.get_user_invitations')
+    @patch('thisapp.invitations.get_user_invitations')
     def test_success_post_http_method(self, mock_get_user_invitations):
         mock_get_user_invitations.return_value = []
         response = self.client.post(self.url_view, {'username': self.username, 'password': self.password})
