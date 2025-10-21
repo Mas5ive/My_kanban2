@@ -1,5 +1,4 @@
 import mimetypes
-from collections import defaultdict
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -14,8 +13,8 @@ from my_kanban2.http_handlers import (custom_require_http_methods,
                                       payload_too_large_view)
 from user.models import CustomUser
 
-from . import utils
 from . import invitations as invs
+from . import utils
 from .forms import CardForm, CommentForm, CreateBoardForm
 from .models import Board, Card, Comment, Membership
 
@@ -29,18 +28,12 @@ def index_view(request):
 @custom_require_http_methods(['GET'])
 def profile_view(request):
     user_boards = Membership.objects.filter(user=request.user).select_related('board')
-
-    boards = defaultdict(list)
-    for user in user_boards:
-        if user.is_owner:
-            boards['owner boards'].append(user.board)
-        else:
-            boards['invitation boards'].append(user.board)
+    boards = utils.split_boards(user_boards)
 
     context = {
         'form': CreateBoardForm(),
-        'owner_boards': boards['owner boards'],
-        'invitation_boards': boards['invitation boards'],
+        'owner_boards': boards['owner_boards'],
+        'invitation_boards': boards['invitation_boards'],
         'invitations': invs.get_user_invitations(request.user.username),
     }
     return render(request, 'profile.html', context=context)
@@ -68,9 +61,7 @@ def handle_board_view(request, board_id):
             invs.delete_board_invitations(board_id)
             return redirect('profile')
 
-    grouped_cards = defaultdict(list)
-    for card in board.cards.all():
-        grouped_cards[card.status].append(card)
+    grouped_cards = utils.get_card_groups(board)
 
     context = {
         'board': board,
