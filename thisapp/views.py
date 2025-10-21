@@ -10,8 +10,8 @@ from django.shortcuts import (get_list_or_404, get_object_or_404, redirect,
                               render)
 from django.urls import reverse
 
-from thisapp.http_handlers import (custom_require_http_methods,
-                                   payload_too_large_view)
+from my_kanban2.http_handlers import (custom_require_http_methods,
+                                      payload_too_large_view)
 from user.models import CustomUser
 
 from . import utils

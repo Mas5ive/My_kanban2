@@ -1,15 +1,15 @@
 {% extends 'http_status_codes/base.html' %}
 
 {% block title %}
-<title>404 Not found</title>
+<title>403 Permission denied</title>
 {% endblock %}
 
 {% block header_title %}
-<h1>404</h1>
+<h1>403</h1>
 {% endblock %}
 
 {% block content %}
 {% load static %}
-<img src="{% static 'thisapp/images/404.png' %}" alt="an empty box">
-<h3>The requested resource was not found.</h3>
+<img src="{% static 'images/403.png' %}" alt="prohibition sign">
+<h3>You do not have permission to make this request.</h3>
 {% endblock %}

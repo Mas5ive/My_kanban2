@@ -17,7 +17,7 @@ Including another URLconf
 # from django.contrib import admin
 import my_kanban2.settings as settings
 from django.urls import include, path
-from thisapp import http_handlers
+from my_kanban2 import http_handlers
 
 from .health_check import health_check
 

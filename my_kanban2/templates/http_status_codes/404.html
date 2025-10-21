@@ -1,0 +1,15 @@
+{% extends 'http_status_codes/base.html' %}
+
+{% block title %}
+<title>404 Not found</title>
+{% endblock %}
+
+{% block header_title %}
+<h1>404</h1>
+{% endblock %}
+
+{% block content %}
+{% load static %}
+<img src="{% static 'images/404.png' %}" alt="an empty box">
+<h3>The requested resource was not found.</h3>
+{% endblock %}
