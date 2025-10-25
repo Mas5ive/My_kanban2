@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'thisapp.apps.ThisappConfig',
     'user.apps.UserConfig',
     'social_django',
+    'ninja',
 ]
 if DEBUG:
     INSTALLED_APPS.append('debug_toolbar')

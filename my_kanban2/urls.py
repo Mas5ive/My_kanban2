@@ -14,11 +14,13 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.urls import include, path
+
 # from django.contrib import admin
 import my_kanban2.settings as settings
-from django.urls import include, path
 from my_kanban2 import http_handlers
 
+from .api import api_v1
 from .health_check import health_check
 
 urlpatterns = [
@@ -26,6 +28,7 @@ urlpatterns = [
     path('', include('thisapp.urls')),
     path('', include('user.urls')),
     path('', include('social_django.urls', namespace='social')),
+    path('api/v1/', api_v1.urls),
     path('health/', health_check, name='health_check'),
 ]
 if settings.DEBUG:
