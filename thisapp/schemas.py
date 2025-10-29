@@ -24,5 +24,11 @@ class UserBoardsSchema(Schema):
     member_boards: list[BoardSchema]
 
 
+class InvitationSchema(Schema):
+    sender_name: str
+    board_id: int
+    board_title: str
+
+
 class Message(Schema):
     details: str

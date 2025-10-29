@@ -1,7 +1,6 @@
-import json
-
 from .models import Board
 from .redis_client import redis_client
+from .schemas import InvitationSchema
 
 RECIPIENT_PREFIX = 'recipient:'
 INVITATION_PREFIX = 'invitation:'
@@ -18,12 +17,8 @@ def create_invitation(board_id: int, sender: str, recipient: str, ttl=60) -> Non
 
     board = Board.objects.get(id=board_id)
 
-    invitation_value = {
-        'sender_name': sender,
-        'board_id': board.id,
-        'board_title': board.title
-    }
-    redis_client.set(invitation_key, json.dumps(invitation_value), ex=ttl)
+    invitation_value = InvitationSchema(sender_name=sender, board_id=board.id, board_title=board.title)
+    redis_client.set(invitation_key, invitation_value.model_dump_json(), ex=ttl)
     redis_client.sadd(recipient_key, invitation_key)
     redis_client.expire(recipient_key, time=ttl)
 
@@ -35,10 +30,11 @@ def delete_invitation(board_id: int, recipient: str) -> None:
     redis_client.srem(recipient_key, invitation_key)
 
 
-def get_user_invitations(recipient: str) -> list[str]:
+def get_user_invitations(recipient: str) -> list[InvitationSchema]:
     recipient_key = RECIPIENT_PREFIX + recipient
     invitation_keys = redis_client.smembers(recipient_key)
-    return [json.loads(invitation) for key in invitation_keys if (invitation := redis_client.get(key))]
+    return [InvitationSchema.model_validate_json(invitation)
+            for key in invitation_keys if (invitation := redis_client.get(key))]
 
 
 def delete_board_invitations(board_id: int) -> None:
