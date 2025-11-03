@@ -101,10 +101,10 @@
 
                 <div></div>
 
-                <form class="form-container" method="post" action="">
-                    {% csrf_token %}
-                    <button class="transparent-button">Delete the board</button>
-                </form>
+                <div class="form-container">
+                    <button id="delete-board-button" class="transparent-button"
+                        data-board-id="{{ board.id }}">Delete the board</button>
+                </div>
             {% endif %}
         </section>
 
@@ -147,7 +147,10 @@
             
         </section>
     </main>
+
     <footer></footer>
+
+    <script src="{% static 'thisapp/js/board.js' %}" type="module"></script>
 
 </body>
 

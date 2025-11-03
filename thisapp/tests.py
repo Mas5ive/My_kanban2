@@ -8,7 +8,7 @@ from django.urls import reverse
 from my_kanban2.utils import ParametrizedTestCaseMeta, parametrize
 
 from .forms import CardForm, CommentForm, CreateBoardForm
-from .models import Board, Card, Membership
+from .models import Card, Membership
 
 User = get_user_model()
 
@@ -41,9 +41,66 @@ class ProfileViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTemplateUsed(response, 'profile.html')
         self.assertIsInstance(response.context['form'], CreateBoardForm)
-        self.assertEqual(response.context['owner_boards'], [Board.objects.get(title='Wow project')])
-        self.assertEqual(response.context['invitation_boards'], [Board.objects.get(title='Boring project')])
         self.assertEqual(response.context['invitations'], [])
+
+
+class BoardViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
+    fixtures = ['demo/demo-data.json']
+
+    def setUp(self):
+        self.username = 'TestUser1'
+        self.password = '321qwe,./'
+        self.client = Client()
+        self.client.login(username=self.username, password=self.password)
+        self.url_view = 'board'
+        self.owner_board_id = 1
+        self.member_board_id = 2
+        self.no_access_board_id = 3
+        self.not_exists_board_id = 100
+
+    def test_login_required(self):
+        self.client.logout()
+        response = self.client.get(reverse(self.url_view, args=[self.owner_board_id]))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse(self.url_view, args=[self.owner_board_id])}")
+
+    @parametrize('method_name', [['put'], ['post'], ['head'], ['patch'], ['delete']])
+    def test_mot_allowed_http_methods(self, method_name: str):
+        method = getattr(self.client, method_name)
+        response = method(reverse(self.url_view, args=[self.owner_board_id]))
+        self.assertEqual(response.status_code, HTTPStatus.METHOD_NOT_ALLOWED)
+
+    def test_success_get_http_method(self):
+        response = self.client.get(reverse(self.url_view, args=[self.owner_board_id]))
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertTemplateUsed(response, 'board.html')
+        self.assertEqual(response.context['board'].id, self.owner_board_id)
+        self.assertTrue(response.context['user_is_owner'])
+        self.assertFalse(response.context['board'].membership_set.filter(
+            user=self.client.session['_auth_user_id'],
+            is_owner=False).exists()
+        )
+
+    def test_success_get_http_method_for_member(self):
+        response = self.client.get(reverse(self.url_view, args=[self.member_board_id]))
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertTemplateUsed(response, 'board.html')
+        self.assertEqual(response.context['board'].id, self.member_board_id)
+        self.assertFalse(response.context['user_is_owner'])
+        self.assertTrue(response.context['board'].membership_set.filter(
+            user=self.client.session['_auth_user_id'],
+            is_owner=False).exists()
+        )
+
+    @parametrize(
+        ('board_id', 'expected_status_code'),
+        [
+            (3, HTTPStatus.FORBIDDEN),  # no access board_id
+            (100, HTTPStatus.NOT_FOUND),  # not exists board_id
+        ]
+    )
+    def test_invalid_get_http_method(self, board_id, expected_status_code):
+        response = self.client.get(reverse(self.url_view, args=[board_id]))
+        self.assertEqual(response.status_code, expected_status_code)
 
 
 class CreateCardViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):

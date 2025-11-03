@@ -31,23 +31,14 @@
         </header>
 
         <main>
-
-            {% if owner_boards %}
-            <section>
+            <section id="owner-boards-section" style="display: none;">
                 <h2>Your boards</h2>
-                <div class="line-block">
-                    {% for board in owner_boards %}
-                    <form action="{% url 'board' board_id=board.id %}" method="get">
-                        <button class="board-button">{{ board.title }}</button>
-                    </form>
-                    {% endfor %}
-                </div>
+                <div class="line-block" id="owner-boards-container"></div>
             </section>
-            {% endif %}
 
             <section>
                 <h3>Create a new board</h3>
-                <form method="post" action="{% url 'create_board' %}">
+                <form id="create-board-form">
                     {% csrf_token %}
                     <div class="line-block">
                         {% for field in form %}
@@ -56,7 +47,7 @@
                                 {{ field }}
                             </p>
                         {% endfor %}
-                        <button class="transparent-button">Create</button>
+                        <button type="submit" class="transparent-button">Create</button>
                     </div>
                 </form>
             </section>
@@ -82,21 +73,15 @@
             </section>
             {% endif %}
 
-            {% if invitation_boards %}
-            <section>
+            <section id="member-boards-section" style="display: none;">
                 <h2>You're a member of</h2>
-                <div class="line-block">
-                    {% for board in invitation_boards %}
-                    <form action="{% url 'board' board_id=board.id %}" method="get">
-                        <button class="board-button">{{ board.title }}</button>
-                    </form>
-                    {% endfor %}
-                </div>
+                <div class="line-block" id="member-boards-container"></div>
             </section>
-            {% endif %}
-
         </main>
 
         <footer></footer>
+
+        <script src="{% static 'thisapp/js/profile.js' %}" type="module"></script>
+
     </body>
 </html>

@@ -3,11 +3,9 @@ import mimetypes
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import BadRequest, PermissionDenied
-from django.db import transaction
-from django.http import Http404, HttpResponse, HttpResponseRedirect
+from django.http import Http404, HttpResponse
 from django.shortcuts import (get_list_or_404, get_object_or_404, redirect,
                               render)
-from django.urls import reverse
 
 from my_kanban2.http_handlers import (custom_require_http_methods,
                                       payload_too_large_view)
@@ -27,21 +25,16 @@ def index_view(request):
 @login_required
 @custom_require_http_methods(['GET'])
 def profile_view(request):
-    user_boards = Membership.objects.filter(user=request.user).select_related('board')
-    boards = utils.split_boards(user_boards)
-
     context = {
         'form': CreateBoardForm(),
-        'owner_boards': boards['owner_boards'],
-        'invitation_boards': boards['invitation_boards'],
         'invitations': invs.get_user_invitations(request.user.username),
     }
     return render(request, 'profile.html', context=context)
 
 
 @login_required
-@custom_require_http_methods(['GET', 'POST'])
-def handle_board_view(request, board_id):
+@custom_require_http_methods(['GET'])
+def board_view(request, board_id):
     board = get_object_or_404(
         Board.objects.prefetch_related('membership_set__user', 'cards'),
         id=board_id,
@@ -53,14 +46,6 @@ def handle_board_view(request, board_id):
     if not user_with_board:
         raise PermissionDenied
 
-    if request.method == 'POST':
-        if not user_with_board.is_owner:
-            raise PermissionDenied
-        else:
-            board.delete()
-            invs.delete_board_invitations(board_id)
-            return redirect('profile')
-
     grouped_cards = utils.get_card_groups(board)
 
     context = {
@@ -71,27 +56,6 @@ def handle_board_view(request, board_id):
         'done_cards': grouped_cards.get(Card.Status.DONE, []),
     }
     return render(request, 'board.html', context=context)
-
-
-@login_required
-@custom_require_http_methods(['POST'])
-def create_board_view(request):
-    form = CreateBoardForm(request.POST)
-
-    if not form.is_valid():
-        for field, list_error in form.errors.items():
-            for error in list_error:
-                messages.error(request, field + ': ' + error)
-        raise BadRequest
-
-    with transaction.atomic():
-        board = form.save()
-        Membership.objects.create(
-            user=request.user,
-            board=board,
-            is_owner=True
-        )
-    return HttpResponseRedirect(reverse('profile'), status=303)
 
 
 @login_required
