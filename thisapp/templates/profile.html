@@ -52,26 +52,10 @@
                 </form>
             </section>
 
-            {% if invitations %}
-            <section>
+            <section id="invitations-section" style="display: none;">
                 <h2>Invitations</h2>
-                {% for invitation in invitations %}
-                <div class="line-block">
-                    {{ invitation.sender_name }} invites you to "{{ invitation.board_title }}"
-                    <form action="{% url 'pick_invitation' board_id=invitation.board_id %}" method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="operation" value="reject">
-                        <button class="transparent-button" type="submit">Reject</button>
-                    </form>
-                    <form action="{% url 'pick_invitation' board_id=invitation.board_id %}" method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="operation" value="accept">
-                        <button class="transparent-button" type="submit">Accept</button>
-                    </form>
-                </div>
-                {% endfor %}
+                <div id="invitations-container"></div>
             </section>
-            {% endif %}
 
             <section id="member-boards-section" style="display: none;">
                 <h2>You're a member of</h2>

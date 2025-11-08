@@ -117,11 +117,9 @@
                     <div class="member">
                         <p>{{ member.user.username }}</p>
                         {% if user_is_owner %}
-                        <form action="{% url 'delete_member' board_id=board.id %}" method="post">
-                            {% csrf_token %}
-                            <input type="hidden" name="member" value="{{ member.user.username }}">
-                            <button class="delete-member-botton">Delete</button>
-                        </form>
+                            <button class="delete-member-button" data-board-id="{{ board.id }}"
+                             data-username="{{ member.user.username }}">Delete</button>
+                        </div>
                         {% endif %}
                     </div>
                     {% endif %}
@@ -130,19 +128,13 @@
 
             {% if user_is_owner%}
                 <div class="invite">
-                    <form method="post" action="{% url 'сreate_invitation' board_id=board.id %}">
-                        {% csrf_token %}
+                    <form id="invite-form" data-board-id="{{ board.id }}">
                         <label for="username">User:</label>
                         <input type="text" id="recipient" name="recipient" required>
                         <button class="transparent-button">Invite</button>
                     </form>
                 </div>
 
-                {% if messages %}
-                    {% for message in messages %}
-                        <p class="{{ message.tags }}-message">{{ message }}<p>
-                    {% endfor %}
-                {% endif %}
             {% endif %}
             
         </section>

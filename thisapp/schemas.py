@@ -1,3 +1,5 @@
+from typing import Literal
+
 from ninja import ModelSchema, Schema
 from pydantic import Field
 
@@ -28,6 +30,15 @@ class InvitationSchema(Schema):
     sender_name: str
     board_id: int
     board_title: str
+
+
+class InvitationCreateSchema(Schema):
+    board_id: int
+    recipient: str
+
+
+class InvitationPickSchema(Schema):
+    operation: Literal['accept', 'reject']
 
 
 class Message(Schema):

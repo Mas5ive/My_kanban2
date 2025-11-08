@@ -32,6 +32,10 @@ async function apiFetch(endpoint, options = {}) {
         throw new APIError(details);
     }
 
+    if (response.status === 204) {
+        return null;
+    }
+
     return response.json();
 }
 
@@ -54,3 +58,37 @@ export async function deleteBoard(boardId) {
     return apiFetch(`/boards/${boardId}`, { method: 'DELETE' });
 }
 
+
+// --- Membership related API calls ---
+
+export async function getInvitations() {
+    return apiFetch('/invitations');
+}
+
+export async function createInvitation(boardId, recipient) {
+    const payload = { board_id: boardId, recipient: recipient }
+    return apiFetch('/invitations', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function createMember(boardId, operation) {
+    const payload = { operation: operation }
+    return apiFetch(`/boards/${boardId}/members`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function deleteMember(boardId, username) {
+    return apiFetch(`/boards/${boardId}/members/${username}`, {
+        method: 'DELETE',
+    });
+}

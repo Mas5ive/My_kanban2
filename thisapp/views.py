@@ -4,12 +4,10 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import BadRequest, PermissionDenied
 from django.http import Http404, HttpResponse
-from django.shortcuts import (get_list_or_404, get_object_or_404, redirect,
-                              render)
+from django.shortcuts import get_object_or_404, redirect, render
 
 from my_kanban2.http_handlers import (custom_require_http_methods,
                                       payload_too_large_view)
-from user.models import CustomUser
 
 from . import invitations as invs
 from . import utils
@@ -56,93 +54,6 @@ def board_view(request, board_id):
         'done_cards': grouped_cards.get(Card.Status.DONE, []),
     }
     return render(request, 'board.html', context=context)
-
-
-@login_required
-@custom_require_http_methods(['POST'])
-def сreate_invitation_view(request, board_id):
-    membership = get_list_or_404(Membership, board=board_id)
-    sender = request.user
-
-    if not any(m.is_owner and m.user == sender for m in membership):
-        raise PermissionDenied
-
-    recipient_name = request.POST.get('recipient', '')
-    recipient = CustomUser.objects.filter(username=recipient_name).first()
-
-    if not recipient:
-        messages.error(request, f'User "{recipient_name}" does not exist')
-        raise BadRequest
-
-    if any(m.user == recipient for m in membership):
-        messages.error(request, f'User "{recipient_name}" is already a member of the board')
-        raise BadRequest
-
-    if invs.get_invitation(board_id, recipient_name):
-        messages.error(request, f'User "{recipient_name}" has already received an invitation')
-        raise BadRequest
-
-    invs.create_invitation(board_id, sender.username, recipient_name)
-    messages.success(request, 'The invitation has been sent!')
-
-    response = redirect('board', board_id=board_id)
-    response.status_code = 303
-    return response
-
-
-@login_required
-@custom_require_http_methods(['POST'])
-def delete_member_view(request, board_id):
-    membership = get_list_or_404(Membership, board=board_id)
-
-    if not any(m.is_owner for m in membership if m.user == request.user):
-        raise PermissionDenied
-
-    member_name = request.POST.get('member', '')
-    member = CustomUser.objects.filter(username=member_name).first()
-
-    if not member or all(m.user != member for m in membership if not m.is_owner):
-        messages.error(request, f'The use of the user "{member_name}" in the request is incorrect')
-        raise BadRequest
-
-    Membership.objects.filter(
-        user=member,
-        board_id=board_id
-    ).delete()
-
-    response = redirect('board', board_id=board_id)
-    response.status_code = 303
-    return response
-
-
-@login_required
-@custom_require_http_methods(['POST'])
-def pick_invitation_view(request, board_id):
-    board = get_object_or_404(Board, id=board_id)
-    user = CustomUser.objects.get(username=request.user)
-
-    if not invs.get_invitation(board.id, user.username):
-        messages.error(request, f'The user {user.username} does not have an invitation to the board')
-        raise BadRequest
-
-    operation = request.POST.get('operation', '')
-
-    if operation == 'accept':
-        Membership.objects.create(
-            user=user,
-            board_id=board_id
-        )
-    elif operation == 'reject':
-        pass
-    else:
-        messages.error(request, f'The “{operation}” operation is incorrect in this request')
-        raise BadRequest
-
-    invs.delete_invitation(board_id, user.username)
-
-    response = redirect('profile')
-    response.status_code = 303
-    return response
 
 
 @login_required
