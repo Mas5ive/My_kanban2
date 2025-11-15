@@ -8,7 +8,7 @@ from django.urls import reverse
 from my_kanban2.utils import ParametrizedTestCaseMeta, parametrize
 
 from .forms import CardForm, CommentForm, CreateBoardForm
-from .models import Card, Membership
+from .models import Membership
 
 User = get_user_model()
 
@@ -146,22 +146,8 @@ class CreateCardViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
         response = self.client.get(reverse(self.title_view, args=[board_id]))
         self.assertEqual(response.status_code, expected_status_code)
 
-    @parametrize(
-        ('data', 'is_number_of_cards_changed', 'expected_status_code'),
-        [
-            ({}, True, HTTPStatus.BAD_REQUEST),
-            ({'title': 'New card', 'contant': 'Some content'}, False, HTTPStatus.SEE_OTHER),
-        ]
-    )
-    def test_post_http_method(self, data, is_number_of_cards_changed, expected_status_code):
-        count_cards_before_request = Card.objects.filter(board_id=self.owner_board_id).count()
-        response = self.client.post(reverse(self.title_view, args=[self.owner_board_id]), data)
-        self.assertEqual(response.status_code, expected_status_code)
-        count_cards_after_request = Card.objects.filter(board_id=self.owner_board_id).count()
-        self.assertEqual(count_cards_before_request == count_cards_after_request, is_number_of_cards_changed)
 
-
-class HandleCardViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
+class CardViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
     fixtures = ['demo/demo-data.json']
 
     OWNER_BOARD_ID = 1
@@ -196,8 +182,8 @@ class HandleCardViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
             f"{reverse(self.title_view, args=[self.OWNER_BOARD_ID, self.OWNER_BOARD_IN_PROGRESS_CARD_ID])}"
         )
 
-    @parametrize('method_name', [['put'], ['head'], ['patch'], ['delete']])
-    def test_mot_allowed_http_methods(self, method_name: str):
+    @parametrize('method_name', [['post'], ['put'], ['head'], ['patch'], ['delete']])
+    def test_not_allowed_http_methods(self, method_name: str):
         method = getattr(self.client, method_name)
         response = method(reverse(self.title_view, args=[self.OWNER_BOARD_ID,  self.OWNER_BOARD_IN_PROGRESS_CARD_ID]))
         self.assertEqual(response.status_code, HTTPStatus.METHOD_NOT_ALLOWED)
@@ -237,58 +223,3 @@ class HandleCardViewTestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
     def test_card_form_unavailable_for_member(self):
         response = self.client.get(reverse(self.title_view, args=[self.MEMBER_BOARD_ID, self.MEMBER_BOARD_CARD_ID]))
         self.assertNotIn('card_form', response.context)
-
-    @parametrize(
-        ('board_id', 'card_id', 'expected_status_code'),
-        [
-            (MEMBER_BOARD_ID, MEMBER_BOARD_CARD_ID, HTTPStatus.FORBIDDEN),
-            (OWNER_BOARD_ID, OWNER_BOARD_IN_PROGRESS_CARD_ID, HTTPStatus.SEE_OTHER),
-        ]
-    )
-    def test_delete_post_http_method(self, board_id, card_id, expected_status_code):
-        response = self.client.post(
-            reverse(self.title_view, args=[board_id, card_id]),
-            {'operation': 'DELETE'},
-        )
-        self.assertEqual(response.status_code, expected_status_code)
-
-    @parametrize(
-        ('board_id', 'card_id', 'expected_status_code'),
-        [
-            (MEMBER_BOARD_ID, MEMBER_BOARD_CARD_ID, HTTPStatus.FORBIDDEN),
-            (OWNER_BOARD_ID, OWNER_BOARD_IN_PROGRESS_CARD_ID, HTTPStatus.SEE_OTHER),
-        ]
-    )
-    def test_edit_post_http_method(self, board_id, card_id, expected_status_code):
-        response = self.client.post(
-            reverse(self.title_view, args=[board_id, card_id]),
-            {
-                'operation': 'EDIT',
-                'title': 'tttle',
-                'content': 'content'
-            },
-        )
-        self.assertEqual(response.status_code, expected_status_code)
-
-    @parametrize(
-        ('board_id', 'card_id', 'operation', 'expected_status_code'),
-        [
-            (OWNER_BOARD_ID, OWNER_BOARD_DONE_CARD_ID, 'MOVE_RIGHT', HTTPStatus.BAD_REQUEST),
-            (OWNER_BOARD_ID, OWNER_BOARD_BACKLOG_CARD_ID, 'MOVE_LEFT', HTTPStatus.BAD_REQUEST),
-            (OWNER_BOARD_ID, OWNER_BOARD_IN_PROGRESS_CARD_ID, 'MOVE_LEFT', HTTPStatus.SEE_OTHER),
-            (OWNER_BOARD_ID, OWNER_BOARD_IN_PROGRESS_CARD_ID, 'MOVE_RIGHT', HTTPStatus.SEE_OTHER),
-        ]
-    )
-    def test_move_post_http_method(self, board_id, card_id, operation, expected_status_code):
-        response = self.client.post(
-            reverse(self.title_view, args=[board_id, card_id]),
-            {'operation': operation}
-        )
-        self.assertEqual(response.status_code, expected_status_code)
-
-    def test_invalid_operation_post_http_method(self):
-        response = self.client.post(
-            reverse(self.title_view, args=[self.OWNER_BOARD_ID, self.OWNER_BOARD_IN_PROGRESS_CARD_ID]),
-            {'operation': 'REMOVE'}
-        )
-        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)

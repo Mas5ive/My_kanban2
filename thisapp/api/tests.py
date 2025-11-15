@@ -7,8 +7,9 @@ from ninja.testing import TestClient
 
 from my_kanban2.utils import ParametrizedTestCaseMeta, parametrize
 from thisapp.api.boards import router as boards_router
+from thisapp.api.cards import router as cards_router
 from thisapp.api.membership import router as membership_router
-from thisapp.models import Board, Membership
+from thisapp.models import Board, Card, Membership
 
 User = get_user_model()
 
@@ -310,5 +311,214 @@ class DeleteMemberAPITestCase(MembershipAPITestCase):
     def test_delete_member_for_unauthenticated_user(self):
         response = self.client.delete(
             self.API_URL_PATH.format(board_id=1, member='TestUser2')
+        )
+        self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)
+
+
+class CardsAPITestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
+    API_URL_PATH = '/boards/{board_id}/cards'
+    fixtures = ['demo/demo-data.json']
+
+    def setUp(self):
+        self.client = TestClient(cards_router)
+
+
+class CreateCardAPITestCase(CardsAPITestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.user = User.objects.get(username='TestUser1')
+        self.board_id = 1
+
+    def test_create_card_successfully(self):
+        payload = {'title': 'New Card Title', 'content': 'New Card Content'}
+        response = self.client.post(self.API_URL_PATH.format(board_id=self.board_id), json=payload, user=self.user)
+        self.assertEqual(response.status_code, HTTPStatus.CREATED)
+        self.assertEqual(response.json()['details'], 'The card created successfully')
+        self.assertTrue(self.user.membership_set.filter(board_id=self.board_id, is_owner=True).exists())
+
+    @parametrize(
+        ('board_id', 'payload', 'expected_status', 'expected_details'),
+        [
+            (999, {'title': 'New Card'}, HTTPStatus.NOT_FOUND, 'The board not found.'),
+            (2, {'title': 'New Card'}, HTTPStatus.FORBIDDEN, 'Only the owner of the board can create cards.'),
+            (1, {'title': ''}, HTTPStatus.UNPROCESSABLE_ENTITY, None),
+            (1, {'title': ' '}, HTTPStatus.UNPROCESSABLE_ENTITY, None),
+        ]
+    )
+    def test_create_card_unsuccessfully(self, board_id, payload, expected_status, expected_details):
+        response = self.client.post(self.API_URL_PATH.format(board_id=board_id), json=payload, user=self.user)
+        self.assertEqual(response.status_code, expected_status)
+        if expected_details:
+            self.assertEqual(response.json()['details'], expected_details)
+
+    def test_create_card_for_unauthenticated_user(self):
+        payload = {'title': 'New Card Title', 'content': 'New Card Content'}
+        response = self.client.post(self.API_URL_PATH.format(board_id=self.board_id), json=payload)
+        self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)
+
+
+class EditCardAPITestCase(CardsAPITestCase):
+
+    API_URL_PATH = CardsAPITestCase.API_URL_PATH + '/{card_id}'
+
+    def setUp(self):
+        super().setUp()
+        self.user = User.objects.get(username='TestUser1')
+        self.board_id = 1
+        self.card_id = 1  # Card owned by TestUser1
+
+    @parametrize(
+        ('payload', 'expected_status', 'expected_details'),
+        [
+            ({'title': 'Updated Title'}, HTTPStatus.OK, 'The card edited successfully'),
+            ({'content': 'Updated Content'}, HTTPStatus.OK, 'The card edited successfully'),
+            ({'title': 'Updated Title', 'content': 'Updated Content'}, HTTPStatus.OK, 'The card edited successfully'),
+        ]
+    )
+    def test_edit_card_successfully(self, payload, expected_status, expected_details):
+        response = self.client.patch(
+            self.API_URL_PATH.format(board_id=self.board_id, card_id=self.card_id),
+            json=payload,
+            user=self.user
+        )
+        self.assertEqual(response.status_code, expected_status)
+        self.assertEqual(response.json()['details'], expected_details)
+        card = Card.objects.get(id=self.card_id)
+        if 'title' in payload:
+            self.assertEqual(card.title, payload['title'])
+        if 'content' in payload:
+            self.assertEqual(card.content, payload['content'])
+
+    @parametrize(
+        ('board_id', 'card_id', 'payload', 'expected_status', 'expected_details'),
+        [
+            (1, 999, {'title': 'New Title'}, HTTPStatus.NOT_FOUND, 'The card not found.'),
+            (999, 1, {'title': 'New Title'}, HTTPStatus.NOT_FOUND, 'The card not found.'),
+            (2, 3, {'title': 'New Title'}, HTTPStatus.FORBIDDEN, 'Only the owner can edit cards.'),
+            (1, 1, {}, HTTPStatus.BAD_REQUEST, 'No fields to update.'),
+            (1, 1, {'title': ''}, HTTPStatus.UNPROCESSABLE_ENTITY, None),
+        ]
+    )
+    def test_edit_card_unsuccessfully(self, board_id, card_id, payload, expected_status, expected_details):
+        response = self.client.patch(
+            self.API_URL_PATH.format(board_id=board_id, card_id=card_id),
+            json=payload,
+            user=self.user
+        )
+        self.assertEqual(response.status_code, expected_status)
+        if expected_details:
+            self.assertEqual(response.json()['details'], expected_details)
+
+    def test_edit_card_for_unauthenticated_user(self):
+        payload = {'title': 'Updated Title'}
+        response = self.client.patch(
+            self.API_URL_PATH.format(board_id=self.board_id, card_id=self.card_id),
+            json=payload
+        )
+        self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)
+
+
+class MoveCardAPITestCase(CardsAPITestCase):
+
+    API_URL_PATH = CardsAPITestCase.API_URL_PATH + '/{card_id}/status'
+
+    def setUp(self):
+        super().setUp()
+        self.user = User.objects.get(username='TestUser1')
+        self.board_id = 1
+
+    @parametrize(
+        ('card_id', 'initial_status', 'move_direction', 'expected_status'),
+        [
+            (2, Card.Status.BACKLOG, 'RIGHT', Card.Status.IN_PROGRESS),
+            (1, Card.Status.IN_PROGRESS, 'LEFT', Card.Status.BACKLOG),
+            (1, Card.Status.IN_PROGRESS, 'RIGHT', Card.Status.DONE),
+            (5, Card.Status.DONE, 'LEFT', Card.Status.IN_PROGRESS),
+        ]
+    )
+    def test_move_card_successfully(self, card_id, initial_status, move_direction, expected_status):
+        card = Card.objects.get(id=card_id)
+        self.assertEqual(card.status, initial_status)
+        payload = {'move_direction': move_direction}
+        response = self.client.patch(
+            self.API_URL_PATH.format(board_id=self.board_id, card_id=card_id),
+            json=payload,
+            user=self.user
+        )
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(response.json()['details'], 'The card moved successfully')
+        card.refresh_from_db()
+        self.assertEqual(card.status, expected_status)
+
+    @parametrize(
+        ('board_id', 'card_id', 'move_direction', 'expected_status_code', 'expected_details'),
+        [
+            (1, 999, 'RIGHT', HTTPStatus.NOT_FOUND, 'The card not found.'),
+            (999, 1, 'RIGHT', HTTPStatus.NOT_FOUND, 'The card not found.'),
+            (3, 4, 'RIGHT', HTTPStatus.FORBIDDEN, 'You are not a member of this board.'),
+            # Backlog can't move left
+            (1, 2, 'LEFT', HTTPStatus.BAD_REQUEST, 'Invalid operation: LEFT for the card status'),
+            # Done can't move right
+            (1, 5, 'RIGHT', HTTPStatus.BAD_REQUEST, 'Invalid operation: RIGHT for the card status'),
+            (1, 1, 'UP', HTTPStatus.UNPROCESSABLE_ENTITY, None),  # Invalid move_direction
+        ]
+    )
+    def test_move_card_unsuccessfully(self, board_id, card_id, move_direction, expected_status_code, expected_details):
+        payload = {'move_direction': move_direction}
+        response = self.client.patch(
+            self.API_URL_PATH.format(board_id=board_id, card_id=card_id),
+            json=payload,
+            user=self.user
+        )
+        self.assertEqual(response.status_code, expected_status_code)
+        if expected_details:
+            self.assertEqual(response.json()['details'], expected_details)
+
+    def test_move_card_for_unauthenticated_user(self):
+        payload = {'move_direction': 'RIGHT'}
+        response = self.client.patch(
+            self.API_URL_PATH.format(board_id=self.board_id, card_id=1),
+            json=payload
+        )
+        self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)
+
+
+class DeleteCardAPITestCase(CardsAPITestCase):
+    API_URL_PATH = CardsAPITestCase.API_URL_PATH + '/{card_id}'
+
+    def setUp(self):
+        super().setUp()
+        self.user = User.objects.get(username='TestUser1')
+        self.board_id = 1
+        self.card_id = 1  # Card owned by TestUser1
+
+    def test_delete_card_successfully(self):
+        response = self.client.delete(
+            self.API_URL_PATH.format(board_id=self.board_id, card_id=self.card_id),
+            user=self.user
+        )
+        self.assertEqual(response.status_code, HTTPStatus.NO_CONTENT)
+        self.assertFalse(Card.objects.filter(id=self.card_id).exists())
+
+    @parametrize(
+        ('board_id', 'card_id', 'expected_status_code', 'expected_details'),
+        [
+            (1, 999, HTTPStatus.NOT_FOUND, 'The card not found.'),
+            (999, 1, HTTPStatus.NOT_FOUND, 'The card not found.'),
+            (2, 3, HTTPStatus.FORBIDDEN, 'Only the owner of the board can delete cards.'),
+        ]
+    )
+    def test_delete_card_unsuccessfully(self, board_id, card_id, expected_status_code, expected_details):
+        response = self.client.delete(
+            self.API_URL_PATH.format(board_id=board_id, card_id=card_id),
+            user=self.user
+        )
+        self.assertEqual(response.status_code, expected_status_code)
+        self.assertEqual(response.json()['details'], expected_details)
+
+    def test_delete_card_for_unauthenticated_user(self):
+        response = self.client.delete(
+            self.API_URL_PATH.format(board_id=self.board_id, card_id=self.card_id)
         )
         self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)

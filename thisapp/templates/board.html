@@ -27,69 +27,27 @@
 
             <div class="column">
                 <h2>Backlog [{{ backlog_cards|length }}]</h2>
-
                 <div class="scrollable">
                     {% for card in backlog_cards %}
-                    <div class="card">
-                        <form action="{% url 'card' board_id=board.id card_id=card.id %}" method="get"
-                            class="flex-grow-rest">
-                            <button class="open-card-button">{{ card.title|linebreaksbr }}</button>
-                        </form>
-                        <form action="{% url 'card' board_id=board.id card_id=card.id %}" method="post"
-                            class="flex-20">
-                            {% csrf_token %}
-                            <input type="hidden" name="operation" value="MOVE_RIGHT">
-                            <button class="move-card-button">=&gt;</button>
-                        </form>
-                    </div>
+                        {% include 'includes/card_on_board.html' with card=card board=board %}
                     {% endfor %}
                 </div>
             </div>
 
             <div class="column">
                 <h2>In progress [{{ in_progress_cards|length }}]</h2>
-
                 <div class="scrollable">
                     {% for card in in_progress_cards %}
-                    <div class="card">
-                        <form action="{% url 'card' board_id=board.id card_id=card.id %}" method="post"
-                            class="flex-20">
-                            {% csrf_token %}
-                            <input type="hidden" name="operation" value="MOVE_LEFT">
-                            <button class="move-card-button">&#60;=</button>
-                        </form>
-                        <form action="{% url 'card' board_id=board.id card_id=card.id %}" method="get"
-                            class="flex-grow-rest">
-                            <button class="open-card-button">{{ card.title|linebreaksbr }}</button>
-                        </form>
-                        <form action="{% url 'card' board_id=board.id card_id=card.id %}" method="post"
-                            class="flex-20">
-                            {% csrf_token %}
-                            <input type="hidden" name="operation" value="MOVE_RIGHT">
-                            <button class="move-card-button">=&gt;</button>
-                        </form>
-                    </div>
+                        {% include 'includes/card_on_board.html' with card=card board=board %}
                     {% endfor %}
                 </div>
             </div>
 
             <div class="column">
                 <h2>Done [{{ done_cards|length }}]</h2>
-
                 <div class="scrollable">
                     {% for card in done_cards %}
-                    <div class="card">
-                        <form action="{% url 'card' board_id=board.id card_id=card.id %}" method="post"
-                            class="flex-20">
-                            {% csrf_token %}
-                            <input type="hidden" name="operation" value="MOVE_LEFT">
-                            <button class="move-card-button">&#60;=</button>
-                        </form>
-                        <form action="{% url 'card' board_id=board.id card_id=card.id %}" method="get"
-                            class="flex-grow-rest">
-                            <button class="open-card-button">{{ card.title|linebreaksbr }}</button>
-                        </form>
-                    </div>
+                        {% include 'includes/card_on_board.html' with card=card board=board %}
                     {% endfor %}
                 </div>
             </div>

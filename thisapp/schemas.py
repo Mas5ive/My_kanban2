@@ -41,5 +41,21 @@ class InvitationPickSchema(Schema):
     operation: Literal['accept', 'reject']
 
 
+class CardSchema(Schema):
+    content: str | None = None
+
+
+class CardCreateSchema(CardSchema):
+    title: str = Field(..., min_length=1, pattern=r'.*\S.*')
+
+
+class CardEditSchema(CardSchema):
+    title: str = Field(None, min_length=1, pattern=r'.*\S.*')
+
+
+class CardMoveSchema(Schema):
+    move_direction: Literal['LEFT', 'RIGHT']
+
+
 class Message(Schema):
     details: str

@@ -57,27 +57,12 @@ def board_view(request, board_id):
 
 
 @login_required
-@custom_require_http_methods(['GET', 'POST'])
+@custom_require_http_methods(['GET'])
 def create_card_view(request, board_id):
     board = get_object_or_404(Board, id=board_id)
 
     if not Membership.objects.filter(board=board, user=request.user, is_owner=True).exists():
         raise PermissionDenied
-
-    if request.method == 'POST':
-        form = CardForm(request.POST)
-        if form.is_valid():
-            card = form.save(commit=False)
-            card.board_id = board_id
-            card.save()
-            response = redirect('board', board_id=board_id)
-            response.status_code = 303
-            return response
-        else:
-            for field, list_error in form.errors.items():
-                for error in list_error:
-                    messages.error(request, field + ': ' + error)
-            raise BadRequest
 
     context = {
         'board_id': board_id,
@@ -86,53 +71,15 @@ def create_card_view(request, board_id):
     return render(request, 'card/create.html', context=context)
 
 
-def handle_post_request_card(request, card: Card, board: Board, user_with_board: Membership):
-    operation = request.POST.get('operation', '')
-    errors = {}
-
-    if operation == 'DELETE':
-        if not user_with_board.is_owner:
-            raise PermissionDenied
-        result = utils.delete_card(card)
-
-    elif operation == 'EDIT':
-        if not user_with_board.is_owner:
-            raise PermissionDenied
-        card_form = CardForm(request.POST)
-        result, errors = utils.edit_card(card_form, card)
-
-    elif 'MOVE' in operation:
-        result = utils.move_card(card, operation)
-
-    else:
-        result = False
-
-    if not result:
-        if errors:
-            for field, list_error in errors.items():
-                for error in list_error:
-                    messages.error(request, field + ': ' + error)
-        else:
-            messages.error(request, f'The “{operation}” operation is incorrect in this request')
-        raise BadRequest
-
-    response = redirect('board', board_id=board.id)
-    response.status_code = 303
-    return response
-
-
 @login_required
-@custom_require_http_methods(['GET', 'POST'])
-def handle_card_view(request, board_id, card_id):
+@custom_require_http_methods(['GET'])
+def card_view(request, board_id, card_id):
     board = get_object_or_404(Board, id=board_id)
     card = get_object_or_404(Card.objects.prefetch_related('comments__author'), id=card_id, board=board)
     user_with_board = Membership.objects.filter(board_id=board_id, user=request.user).select_related('user').first()
 
     if not user_with_board:
         raise PermissionDenied
-
-    if request.method == 'POST':
-        return handle_post_request_card(request, card, board, user_with_board)
 
     comment_form = CommentForm()
 

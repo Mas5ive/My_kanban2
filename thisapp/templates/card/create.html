@@ -21,13 +21,14 @@
     </form>
 
     <section class="card-info">
-        <form action="{% url 'card_create' board_id=board_id %}" method="post">
-            {% csrf_token %}
+         <form id="create-card-form" data-board-id="{{ board_id }}">
             {{ form.title }}
             {{ form.content }}
             <button class="board-button">Create</button>
         </form>
-        
     </section>
 </main>
+
+<script src="{% static 'thisapp/js/card_create.js' %}" type="module"></script>
+
 {% endblock %}

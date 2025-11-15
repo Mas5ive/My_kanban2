@@ -1,0 +1,11 @@
+<div class="card">
+    <button class="move-card-button flex-20" data-move-direction="LEFT" data-board-id="{{ board.id }}"
+        data-card-id="{{ card.id }}">&#60;=</button>
+
+    <form action="{% url 'card' board_id=board.id card_id=card.id %}" method="get" class="flex-grow-rest">
+        <button class="open-card-button">{{ card.title|linebreaksbr }}</button>
+    </form>
+
+    <button class="move-card-button flex-20" data-move-direction="RIGHT" data-board-id="{{ board.id }}"
+        data-card-id="{{ card.id }}">=&gt;</button>
+</div>

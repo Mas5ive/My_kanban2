@@ -59,6 +59,48 @@ export async function deleteBoard(boardId) {
 }
 
 
+// --- Card related API calls ---
+
+export async function createCard(boardId, title, content) {
+    const payload = { title: title, content: content };
+    return apiFetch(`/boards/${boardId}/cards`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function editCard(boardId, cardId, title, content) {
+    const payload = { title: title, content: content };
+    return apiFetch(`/boards/${boardId}/cards/${cardId}`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function moveCard(boardId, cardId, moveDirection) {
+    const payload = { move_direction: moveDirection };
+    return apiFetch(`/boards/${boardId}/cards/${cardId}/status`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function deleteCard(boardId, cardId) {
+    return apiFetch(`/boards/${boardId}/cards/${cardId}`, {
+        method: 'DELETE',
+    });
+}
+
+
 // --- Membership related API calls ---
 
 export async function getInvitations() {

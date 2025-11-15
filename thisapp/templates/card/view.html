@@ -21,11 +21,9 @@
 
     <section class="card-info">
         {% if card_form %}
-        <form action="{% url 'card' board_id=board.id card_id=card.id %}" method="post">
-            {% csrf_token %}
+        <form id="edit-card-form" data-board-id="{{ board.id }}" data-card-id="{{ card.id }}">
             {{ card_form.title }}
             {{ card_form.content }}
-            <input type="hidden" name="operation" value="EDIT">
             <button class="board-button">Edit</button>
         </form>
         {% else %}
@@ -36,10 +34,8 @@
     </section>
 
     {% if user_with_board.is_owner %}
-    <form action="{% url 'card' board_id=board.id card_id=card.id %}" method="post">
-        {% csrf_token %}
-        <input type="hidden" name="operation" value="DELETE">
-        <button class="board-button">Delete</button>
+    <form id="delete-card-form" data-board-id="{{ board.id }}" data-card-id="{{ card.id }}">
+        <button type="submit" class="board-button">Delete</button>
     </form>
     {% endif %}
 
@@ -81,4 +77,7 @@
         </div>
     </section>
 </main>
+
+<script src="{% static 'thisapp/js/card_view.js' %}" type="module"></script>
+
 {% endblock %}
