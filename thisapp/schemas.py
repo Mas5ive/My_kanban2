@@ -3,7 +3,7 @@ from typing import Literal
 from ninja import ModelSchema, Schema
 from pydantic import Field
 
-from .models import Board
+from .models import Board, Comment
 
 
 class BoardSchema(ModelSchema):
@@ -55,6 +55,28 @@ class CardEditSchema(CardSchema):
 
 class CardMoveSchema(Schema):
     move_direction: Literal['LEFT', 'RIGHT']
+
+
+class CommentSchema(ModelSchema):
+    filename: str | None = None
+    file_url: str | None = None
+    author_username: str = Field(..., alias='author.username')
+
+    class Meta:
+        model = Comment
+        exclude = ['card', 'author', 'file']
+
+    @staticmethod
+    def resolve_filename(obj: Comment) -> str | None:
+        return obj.get_filename()
+
+    @staticmethod
+    def resolve_file_url(obj: Comment) -> str | None:
+        return obj.get_file_url()
+
+
+class CreateCommentSchema(Schema):
+    content: str = Field(..., min_length=1, pattern=r'.*\S.*')
 
 
 class Message(Schema):

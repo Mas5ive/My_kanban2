@@ -100,6 +100,26 @@ export async function deleteCard(boardId, cardId) {
     });
 }
 
+// --- Comment related API calls ---
+
+export async function getComments(boardId, cardId) {
+    return apiFetch(`/boards/${boardId}/cards/${cardId}/comments`);
+}
+
+export async function createComment(boardId, cardId, form) {
+    const formData = new FormData(form);
+    return apiFetch(`/boards/${boardId}/cards/${cardId}/comments`, {
+        method: 'POST',
+        body: formData,
+    });
+}
+
+export async function deleteComment(boardId, cardId, commentId) {
+    return apiFetch(`/boards/${boardId}/cards/${cardId}/comments/${commentId}`, {
+        method: 'DELETE',
+    });
+}
+
 
 // --- Membership related API calls ---
 

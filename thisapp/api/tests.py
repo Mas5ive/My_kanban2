@@ -1,17 +1,23 @@
+import shutil
+import tempfile
 from http import HTTPStatus
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
 from ninja.testing import TestClient
 
 from my_kanban2.utils import ParametrizedTestCaseMeta, parametrize
 from thisapp.api.boards import router as boards_router
 from thisapp.api.cards import router as cards_router
+from thisapp.api.comments import router as comments_router
 from thisapp.api.membership import router as membership_router
-from thisapp.models import Board, Card, Membership
+from thisapp.models import Board, Card, Comment, Membership
 
 User = get_user_model()
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
 class BoardsAPITestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
@@ -520,5 +526,206 @@ class DeleteCardAPITestCase(CardsAPITestCase):
     def test_delete_card_for_unauthenticated_user(self):
         response = self.client.delete(
             self.API_URL_PATH.format(board_id=self.board_id, card_id=self.card_id)
+        )
+        self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)
+
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
+class CommentsAPITestCase(TestCase, metaclass=ParametrizedTestCaseMeta):
+    API_URL_PATH = '/boards/{board_id}/cards/{card_id}/comments'
+    fixtures = ['demo/demo-data.json']
+
+    def setUp(self):
+        self.client = TestClient(comments_router)
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+
+
+class GetCommentsAPITestCase(CommentsAPITestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.user = User.objects.get(username='TestUser1')
+        self.board_id = 1
+        self.card_id = 1
+
+    def test_get_comments_successfully(self):
+        response = self.client.get(
+            self.API_URL_PATH.format(board_id=self.board_id, card_id=self.card_id),
+            user=self.user
+        )
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        comments = response.json()
+        self.assertIsInstance(comments, list)
+        self.assertEqual(len(comments), 2)
+        self.assertEqual(comments[0]['author_username'], 'TestUser2')
+        self.assertEqual(comments[1]['author_username'], 'TestUser1')
+
+    @parametrize(
+        ('board_id', 'card_id', 'expected_status_code', 'expected_details'),
+        [
+            (999, 1, HTTPStatus.NOT_FOUND, 'The card not found.'),
+            (1, 999, HTTPStatus.NOT_FOUND, 'The card not found.'),
+            (3, 4, HTTPStatus.FORBIDDEN, 'You are not a member of this board.'),
+        ]
+    )
+    def test_get_comments_unsuccessfully(self, board_id, card_id, expected_status_code, expected_details):
+        response = self.client.get(
+            self.API_URL_PATH.format(board_id=board_id, card_id=card_id),
+            user=self.user
+        )
+        self.assertEqual(response.status_code, expected_status_code)
+        self.assertEqual(response.json()['details'], expected_details)
+
+    def test_get_comments_for_unauthenticated_user(self):
+        response = self.client.get(
+            self.API_URL_PATH.format(board_id=self.board_id, card_id=self.card_id)
+        )
+        self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)
+
+
+class CreateCommentAPITestCase(CommentsAPITestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.user = User.objects.get(username='TestUser1')
+        self.board_id = 1
+        self.card_id = 1
+
+    def test_create_comment_with_file_successfully(self):
+        file_content = b'This is a test file content'
+        filename = 'test_image'
+        content = 'This is a test comment text'
+        test_file = SimpleUploadedFile(name=filename + '.jpg', content=file_content, content_type='image/jpeg')
+
+        response = self.client.post(
+            self.API_URL_PATH.format(board_id=self.board_id, card_id=self.card_id),
+            data={'content': content},
+            FILES={'file': test_file},
+            user=self.user
+        )
+
+        self.assertEqual(response.status_code, HTTPStatus.CREATED)
+        data = response.json()
+        self.assertEqual(data['details'], 'The comment created successfully')
+        comment = Comment.objects.filter(card_id=self.card_id, author=self.user, content=content).last()
+        self.assertIsNotNone(comment)
+        self.assertTrue(comment.file)
+        self.assertIn(filename, comment.get_filename())
+
+    def test_create_comment_without_file_successfully(self):
+        content = 'This is a test comment without a file'
+        response = self.client.post(
+            self.API_URL_PATH.format(board_id=self.board_id, card_id=self.card_id),
+            data={'content': content},
+            user=self.user
+        )
+        self.assertEqual(response.status_code, HTTPStatus.CREATED)
+        data = response.json()
+        self.assertEqual(data['details'], 'The comment created successfully')
+        comment = Comment.objects.filter(card_id=self.card_id, author=self.user, content=content).last()
+        self.assertIsNotNone(comment)
+        self.assertFalse(comment.file)
+
+    @parametrize(
+        ('board_id', 'card_id', 'content', 'file', 'expected_status', 'expected_details'),
+        [
+            (999, 1, 'Test comment', {'size': 1, 'ext': 'jpg', 'type': 'image/jpeg'},
+             HTTPStatus.NOT_FOUND, 'The card not found.'),
+
+            (1, 999, 'Test comment', {'size': 1, 'ext': 'jpg', 'type': 'image/jpeg'},
+             HTTPStatus.NOT_FOUND, 'The card not found.'),
+
+            (3, 4, 'Test comment', {'size': 1, 'ext': 'jpg', 'type': 'image/jpeg'},
+             HTTPStatus.FORBIDDEN, 'You are not a member of this board.'),
+
+            (1, 1, '', {'size': 1, 'ext': 'jpg', 'type': 'image/jpeg'},
+             HTTPStatus.UNPROCESSABLE_ENTITY, None),  # Empty content
+
+            (1, 1, 'Test comment', {'size': 6, 'ext': 'jpg', 'type': 'image/jpeg'},
+             HTTPStatus.BAD_REQUEST, '* file\n  * The file size must not exceed 5 MB.'),
+
+            (1, 1, 'Test comment', {'size': 1, 'ext': 'txt', 'type': 'text/plain'},
+             HTTPStatus.BAD_REQUEST, '* file\n  * File type not supported. Use one of .pdf, .png, .jpg, .jpeg'),
+        ]
+    )
+    def test_create_comment_unsuccessfully(self, board_id, card_id, content, file, expected_status, expected_details):
+        file_content = b'a' * (file['size'] * 1024 * 1024)
+        test_file = SimpleUploadedFile(
+            name='file.' + file['ext'],
+            content=file_content,
+            content_type=file['type']
+        )
+
+        response = self.client.post(
+            self.API_URL_PATH.format(board_id=board_id, card_id=card_id),
+            data={'content': content},
+            FILES={'file': test_file},
+            user=self.user
+        )
+        self.assertEqual(response.status_code, expected_status)
+        if expected_details:
+            self.assertEqual(response.json()['details'], expected_details)
+
+    def test_create_comment_for_unauthenticated_user(self):
+        content = 'Test comment'
+        response = self.client.post(
+            self.API_URL_PATH.format(board_id=self.board_id, card_id=self.card_id),
+            data={'content': content}
+        )
+        self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)
+
+
+class DeleteCommentAPITestCase(CommentsAPITestCase):
+
+    API_URL_PATH = CommentsAPITestCase.API_URL_PATH + '/{comment_id}'
+
+    def setUp(self):
+        super().setUp()
+        self.user = User.objects.get(username='TestUser1')
+        self.board_id = 1
+        self.card_id = 1
+        self.comment_id = 2
+
+    @parametrize(
+        ('board_id', 'card_id', 'comment_id'),
+        [
+            (1, 1, 2),
+            (1, 1, 1),  # сomment by TestUser2
+        ]
+    )
+    def test_delete_comment_successfully(self, board_id, card_id, comment_id):
+        response = self.client.delete(
+            self.API_URL_PATH.format(board_id=board_id, card_id=card_id, comment_id=comment_id),
+            user=self.user
+        )
+        self.assertEqual(response.status_code, HTTPStatus.NO_CONTENT)
+        self.assertFalse(Comment.objects.filter(id=comment_id).exists())
+
+    @parametrize(
+        ('board_id', 'card_id', 'comment_id', 'expected_status_code', 'expected_details'),
+        [
+            (999, 1, 2, HTTPStatus.NOT_FOUND, 'The card not found.'),
+            (1, 999, 2, HTTPStatus.NOT_FOUND, 'The card not found.'),
+            (1, 1, 999, HTTPStatus.NOT_FOUND, 'The comment not found.'),
+            (3, 4, 6, HTTPStatus.FORBIDDEN, 'You are not a member of this board.'),
+            # TestUser1 is not author and not owner
+            (2, 3, 7, HTTPStatus.FORBIDDEN, 'You can not delete this comment.')
+        ]
+    )
+    def test_delete_comment_unsuccessfully(self, board_id, card_id, comment_id, expected_status_code, expected_details):
+        response = self.client.delete(
+            self.API_URL_PATH.format(board_id=board_id, card_id=card_id, comment_id=comment_id),
+            user=self.user
+        )
+        self.assertEqual(response.status_code, expected_status_code)
+        self.assertEqual(response.json()['details'], expected_details)
+
+    def test_delete_comment_for_unauthenticated_user(self):
+        response = self.client.delete(
+            self.API_URL_PATH.format(board_id=self.board_id, card_id=self.card_id, comment_id=self.comment_id)
         )
         self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)

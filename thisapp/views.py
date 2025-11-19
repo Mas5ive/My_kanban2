@@ -1,13 +1,11 @@
 import mimetypes
 
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import BadRequest, PermissionDenied
+from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, render
 
-from my_kanban2.http_handlers import (custom_require_http_methods,
-                                      payload_too_large_view)
+from my_kanban2.http_handlers import custom_require_http_methods
 
 from . import invitations as invs
 from . import utils
@@ -75,7 +73,7 @@ def create_card_view(request, board_id):
 @custom_require_http_methods(['GET'])
 def card_view(request, board_id, card_id):
     board = get_object_or_404(Board, id=board_id)
-    card = get_object_or_404(Card.objects.prefetch_related('comments__author'), id=card_id, board=board)
+    card = get_object_or_404(Card, id=card_id, board=board)
     user_with_board = Membership.objects.filter(board_id=board_id, user=request.user).select_related('user').first()
 
     if not user_with_board:
@@ -97,42 +95,13 @@ def card_view(request, board_id, card_id):
 
 
 @login_required
-@custom_require_http_methods(['POST'])
-def create_comment_view(request, board_id, card_id):
-    board = get_object_or_404(Board, id=board_id)
-
-    if not Membership.objects.filter(user=request.user, board_id=board_id).exists():
-        raise PermissionDenied
-
-    card = get_object_or_404(Card, id=card_id, board=board)
-    form = CommentForm(request.POST, request.FILES)
-
-    if not form.is_valid():
-        if 'file' in form.errors and any('size' in error for error in form.errors['file']):
-            return payload_too_large_view(request)
-
-        for field, list_error in form.errors.items():
-            for error in list_error:
-                messages.error(request, field + ': ' + error)
-        raise BadRequest
-
-    comment = form.save(commit=False)
-    comment.card_id = card.id
-    comment.author = request.user
-    comment.save()
-    return redirect('card', board_id=board_id, card_id=card_id)
-
-
-@login_required
 @custom_require_http_methods(['GET'])
 def get_file_from_comment(request, board_id, card_id, comment_id):
-    board = get_object_or_404(Board, id=board_id)
+    card = get_object_or_404(Card, id=card_id, board_id=board_id)
+    comment = get_object_or_404(Comment, id=comment_id, card=card)
 
     if not Membership.objects.filter(user=request.user, board_id=board_id).exists():
         raise PermissionDenied
-
-    card = get_object_or_404(Card, id=card_id, board=board)
-    comment = get_object_or_404(Comment, id=comment_id, card=card)
 
     file_name = comment.get_filename()
     if not file_name:
@@ -146,22 +115,3 @@ def get_file_from_comment(request, board_id, card_id, comment_id):
         response = HttpResponse(file.read(), content_type=mime_type)
         response['Content-Disposition'] = f'attachment; filename="{file_name}"'
     return response
-
-
-@login_required
-@custom_require_http_methods(['POST'])
-def delete_comment_view(request, board_id, card_id, comment_id):
-    board = get_object_or_404(Board, id=board_id)
-    card = get_object_or_404(Card, id=card_id, board=board)
-    comment = get_object_or_404(Comment, id=comment_id, card=card)
-
-    if comment.author != request.user:
-        raise PermissionDenied
-
-    operation = request.POST.get('operation', '')
-    if operation != 'DELETE':
-        messages.error(request, f'The “{operation}” operation is incorrect in this request')
-        raise BadRequest
-
-    comment.delete()
-    return redirect('card', board_id=board_id, card_id=card_id)

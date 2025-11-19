@@ -1,6 +1,9 @@
 import os
 
 from django.db import models
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+from django.urls import reverse
 
 from thisapp.validators import validate_file
 from user.models import CustomUser
@@ -58,7 +61,21 @@ class Comment(models.Model):
         if self.file:
             return os.path.basename(self.file.path)
 
-    def delete(self, *args, **kwargs):
+    def get_file_url(self) -> str | None:
         if self.file:
-            os.remove(self.file.path)
-        super().delete(*args, **kwargs)
+            return reverse('get_file_from_comment', kwargs={
+                'board_id': self.card.board.id,
+                'card_id': self.card.id,
+                'comment_id': self.id
+            })
+        return None
+
+
+@receiver(post_delete, sender=Comment)
+def auto_delete_file_on_delete(sender, instance, **kwargs):
+    """
+    Deletes a file from the file system when its corresponding comment is deleted.
+    """
+    if instance.file:
+        if os.path.isfile(instance.file.path):
+            os.remove(instance.file.path)
