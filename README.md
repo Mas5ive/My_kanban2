@@ -4,7 +4,7 @@
 
 ## Description
 
-A simple multi-user kanban application written on the Django 4.2 web framework. This is a demonstration project, not intended to be deployed on a server.
+A simple multi-user kanban application written on the Django 4.2 web framework + Django Ninja 1.4. This is a demonstration project, not intended to be deployed on a server.
 
 ### Available features
 
@@ -24,7 +24,7 @@ A simple multi-user kanban application written on the Django 4.2 web framework. 
 - nginx
 - postgres
 - redis
-- the frontend is made exclusively using Django templates
+- the frontend is written in vanilla JavaScript
 - tests cover a small portion of the code intentionally
 
 ## Installation
