@@ -26,7 +26,7 @@ class CommentForm(forms.ModelForm):
         model = Comment
         fields = ['content', 'file']
         labels = {
-            'file': 'Upload the file up to 50 MB.'
+            'file': 'Upload the file up to 5 MB.'
         }
         widgets = {
             'content': forms.Textarea(attrs={

@@ -2,7 +2,7 @@ import os
 
 from django.db import models
 
-from thisapp.validators import validate_file_size
+from thisapp.validators import validate_file
 from user.models import CustomUser
 
 
@@ -45,7 +45,7 @@ class Comment(models.Model):
     date = models.DateTimeField(auto_now=True)
     file = models.FileField(
         upload_to='user_uploads',
-        validators=[validate_file_size],
+        validators=[validate_file],
         default=None,
         null=True,
         blank=True,

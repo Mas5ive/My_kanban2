@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 ('content', models.TextField()),
                 ('date', models.DateTimeField(auto_now=True)),
                 ('file', models.FileField(blank=True, default=None, null=True,
-                 upload_to='user_uploads', validators=[thisapp.validators.validate_file_size])),
+                 upload_to='user_uploads', validators=[thisapp.validators.validate_file])),
                 ('author', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE,
                  related_name='own_comments', to=settings.AUTH_USER_MODEL)),
                 ('card', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='comments',
