@@ -880,6 +880,28 @@
   }
 },
 {
+  "model": "thisapp.comment",
+  "pk": 6,
+  "fields": {
+    "card": 4,
+    "author": 3,
+    "content": "Can we keep it under 100 dollars?",
+    "date": "2024-07-26T10:42:44.553Z",
+    "file": ""
+  }
+},
+{
+  "model": "thisapp.comment",
+  "pk": 7,
+  "fields": {
+    "card": 3,
+    "author": 2,
+    "content": "I don't know where this inspiration came from. Some kind of mysticism...",
+    "date": "2024-07-26T10:42:45.553Z",
+    "file": ""
+  }
+},
+{
   "model": "user.customuser",
   "pk": 1,
   "fields": {
