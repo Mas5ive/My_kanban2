@@ -25,7 +25,7 @@ A simple multi-user kanban application written on the Django 4.2 web framework +
 - postgres
 - redis
 - the frontend is written in vanilla JavaScript
-- tests cover a small portion of the code intentionally
+- test coverage = 82%
 
 ## Installation
 
