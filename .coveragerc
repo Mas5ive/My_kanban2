@@ -1,0 +1,31 @@
+[run]
+source = .
+include =
+    thisapp/*
+    user/*
+    my_kanban2/api.py
+    my_kanban2/utils.py
+    my_kanban2/http_handlers.py
+omit =
+    */migrations/*
+    */tests.py
+    */tests/*
+    manage.py
+    my_kanban2/settings.py
+    my_kanban2/asgi.py
+    my_kanban2/wsgi.py
+    my_kanban2/urls.py
+    demo/*
+
+[report]
+show_missing = True
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    def __str__
+    raise NotImplementedError
+    if self.debug:
+    if settings.DEBUG:
+
+[html]
+directory = htmlcov
