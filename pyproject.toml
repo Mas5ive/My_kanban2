@@ -18,6 +18,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "coverage>=7.12.0",
     "debugpy==1.8.8",
     "django-debug-toolbar==4.2.0",
 ]
